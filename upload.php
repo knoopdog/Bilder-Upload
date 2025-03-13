@@ -1,10 +1,22 @@
 <?php
+// Enable detailed error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
+// Log function to help with debugging
+function logMessage($message) {
+    file_put_contents('upload_log.txt', date('[Y-m-d H:i:s] ') . $message . "\n", FILE_APPEND);
+}
+
+logMessage('Upload script started');
+
 // Configuration
-$uploadDir = 'images/';
+$uploadDir = __DIR__ . '/images/';
+logMessage('Upload directory: ' . $uploadDir);
 $maxWidth = 1500;
 $maxHeight = 1500;
 $compressionQuality = 60;
@@ -13,54 +25,72 @@ $compressionQuality = 60;
 try {
     // Check if directory exists, if not create it with full permissions
     if (!file_exists($uploadDir)) {
+        logMessage('Directory does not exist, attempting to create');
         if (!mkdir($uploadDir, 0777, true)) {
             throw new Exception("Failed to create directory: $uploadDir");
         }
+        logMessage('Directory created successfully');
         chmod($uploadDir, 0777); // Ensure permissions are set correctly
+    } else {
+        logMessage('Directory already exists');
     }
     
     // Verify directory is writable
     if (!is_writable($uploadDir)) {
+        logMessage('Directory is not writable, attempting to update permissions');
         chmod($uploadDir, 0777); // Try to make it writable
         if (!is_writable($uploadDir)) {
             throw new Exception("Directory exists but is not writable: $uploadDir");
         }
+    } else {
+        logMessage('Directory is writable');
     }
 } catch (Exception $e) {
+    logMessage('Error: ' . $e->getMessage());
     echo json_encode(['success' => false, 'message' => $e->getMessage()]);
     exit;
 }
 
 // Check if any files were uploaded
 if (empty($_FILES['image'])) {
+    logMessage('No file uploaded');
     echo json_encode(['success' => false, 'message' => 'No file uploaded']);
     exit;
 }
 
 $file = $_FILES['image'];
+logMessage('File received: ' . $file['name']);
 $response = [];
 
 // Check for upload errors
 if ($file['error'] !== UPLOAD_ERR_OK) {
+    logMessage('Upload error: ' . $file['error']);
     $response = ['success' => false, 'message' => 'Upload failed with error code: ' . $file['error']];
 } else {
     // Sanitize filename
     $originalFilename = basename($file['name']);
     $sanitizedFilename = strtolower(preg_replace('/[^a-zA-Z0-9.\-]/', '-', $originalFilename));
     $uploadPath = $uploadDir . $sanitizedFilename;
+    logMessage('Sanitized filename: ' . $sanitizedFilename);
+    logMessage('Full upload path: ' . $uploadPath);
     
     // Process the image (crop and compress)
     $imageInfo = getimagesize($file['tmp_name']);
     if ($imageInfo !== false) {
+        logMessage('Image dimensions: ' . $imageInfo[0] . 'x' . $imageInfo[1]);
+        
         // Create image resource based on type
         switch ($imageInfo[2]) {
             case IMAGETYPE_JPEG:
                 $image = imagecreatefromjpeg($file['tmp_name']);
+                logMessage('Image type: JPEG');
                 break;
             case IMAGETYPE_PNG:
                 $image = imagecreatefrompng($file['tmp_name']);
+                logMessage('Image type: PNG');
                 break;
             default:
+                logMessage('Unsupported image format: ' . $imageInfo[2]);
                 $response = ['success' => false, 'message' => 'Unsupported image format'];
                 echo json_encode($response);
                 exit;
@@ -69,6 +99,7 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         // Calculate new dimensions (crop to square 1500x1500)
         $srcWidth = imagesx($image);
         $srcHeight = imagesy($image);
+        logMessage('Source dimensions: ' . $srcWidth . 'x' . $srcHeight);
         
         // Determine crop dimensions
         if ($srcWidth > $srcHeight) {
@@ -80,6 +111,7 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
             $srcX = 0;
             $srcY = floor(($srcHeight - $srcWidth) / 2);
         }
+        logMessage('Crop dimensions: square size=' . $squareSize . ', srcX=' . $srcX . ', srcY=' . $srcY);
         
         // Create a new canvas for the resized image
         $resized = imagecreatetruecolor($maxWidth, $maxHeight);
@@ -92,6 +124,7 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         
         // Resize and crop
         imagecopyresampled($resized, $image, 0, 0, $srcX, $srcY, $maxWidth, $maxHeight, $squareSize, $squareSize);
+        logMessage('Image resized to ' . $maxWidth . 'x' . $maxHeight);
         
         // Save the processed image
         $saveResult = false;
@@ -99,11 +132,13 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
             switch ($imageInfo[2]) {
                 case IMAGETYPE_JPEG:
                     $saveResult = imagejpeg($resized, $uploadPath, $compressionQuality);
+                    logMessage('Saved as JPEG with quality: ' . $compressionQuality);
                     break;
                 case IMAGETYPE_PNG:
                     // PNG quality is 0-9, convert from 0-100
                     $pngQuality = round(9 - (($compressionQuality / 100) * 9));
                     $saveResult = imagepng($resized, $uploadPath, $pngQuality);
+                    logMessage('Saved as PNG with quality: ' . $pngQuality);
                     break;
             }
             
@@ -111,6 +146,7 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
                 throw new Exception("Failed to save image to $uploadPath");
             }
         } catch (Exception $e) {
+            logMessage('Error saving image: ' . $e->getMessage());
             $response = ['success' => false, 'message' => $e->getMessage()];
             echo json_encode($response);
             exit;
@@ -120,11 +156,12 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         imagedestroy($image);
         imagedestroy($resized);
         
-        // Generate full URL to the image
+        // Generate full URL to the image (use the web-accessible path)
+        $webImagePath = 'images/' . $sanitizedFilename; // Path relative to the web root
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
         $host = $_SERVER['HTTP_HOST'];
-        $baseUrl = $protocol . $host . '/upload/';
-        $fullUrl = $baseUrl . $uploadPath;
+        $fullUrl = $protocol . $host . '/' . $webImagePath;
+        logMessage('Full image URL: ' . $fullUrl);
         
         $response = [
             'success' => true, 
@@ -133,8 +170,10 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
             'url' => $fullUrl
         ];
     } else {
+        logMessage('Invalid image file');
         $response = ['success' => false, 'message' => 'Invalid image file'];
     }
 }
 
+logMessage('Response: ' . json_encode($response));
 echo json_encode($response);
