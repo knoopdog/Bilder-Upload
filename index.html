@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilder-Upload und CSV-Generator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Bilder-Upload und CSV-Generator</h1>
+        
+        <div class="upload-section">
+            <h2>Bilder hochladen</h2>
+            <div class="file-drop-area" id="drop-area">
+                <p>Bilder hierher ziehen oder</p>
+                <label class="file-button">
+                    Bilder auswählen
+                    <input type="file" id="file-input" multiple accept="image/*">
+                </label>
+            </div>
+            <div class="settings">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="auto-rename" checked>
+                    <span class="checkmark"></span>
+                    Dateinamen automatisch anpassen (alles kleinschreiben, Leerzeichen und _ durch - ersetzen)
+                </label>
+            </div>
+            <button id="process-button" class="button disabled" disabled>Bilder verarbeiten</button>
+        </div>
+
+        <div class="results-section hidden" id="results-section">
+            <h2>Verarbeitete Bilder</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Anzahl Bilder:</span>
+                    <span class="stat-value" id="image-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Anzahl Artikel:</span>
+                    <span class="stat-value" id="article-count">0</span>
+                </div>
+            </div>
+            
+            <div class="drag-drop-info">
+                <p><i class="hint-icon">ℹ️</i> <strong>Tipp:</strong> Bilder können per Drag & Drop zwischen den Spalten verschoben werden. Einfach ein Bild anklicken, halten und in eine andere Zelle ziehen.</p>
+            </div>
+            
+            <div class="image-table-container">
+                <table id="image-table">
+                    <thead>
+                        <tr>
+                            <th>Artikelnummer</th>
+                            <th>Image1 (back)</th>
+                            <th>Image2 (front)</th>
+                            <th>Image3</th>
+                            <th>Image4</th>
+                            <th>Image5</th>
+                            <th>Image6</th>
+                            <th>Image7</th>
+                        </tr>
+                    </thead>
+                    <tbody id="image-tbody">
+                        <!-- Wird durch JavaScript gefüllt -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <button id="download-csv" class="button">CSV-Datei herunterladen</button>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
