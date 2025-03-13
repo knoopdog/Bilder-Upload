@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #4a6fa5;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #3d8b40;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 15px;
+            border: 1px solid #ddd;
+        }
+        .progress-container {
+            margin-top: 10px;
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            height: 20px;
+        }
+        #progress {
+            height: 100%;
+            background-color: #4caf50;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <h1>Direct Upload Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Simple File Upload</h2>
+        <p>This test will directly upload an image to the server using a form post.</p>
+        
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div>
+                <input type="file" id="imageFile" name="image" accept="image/*" required>
+            </div>
+            <div style="margin-top: 10px;">
+                <button type="submit" class="button">Upload File</button>
+            </div>
+        </form>
+        
+        <div class="progress-container">
+            <div id="progress"></div>
+        </div>
+        
+        <div id="result">Results will appear here...</div>
+        <div id="imagePreview"></div>
+    </div>
+    
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('imageFile');
+            const resultDiv = document.getElementById('result');
+            const progressBar = document.getElementById('progress');
+            const imagePreview = document.getElementById('imagePreview');
+            
+            if (!fileInput.files.length) {
+                resultDiv.textContent = 'Please select a file first.';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            try {
+                resultDiv.textContent = 'Uploading...';
+                progressBar.style.width = '0%';
+                
+                // Create a new XMLHttpRequest to track progress
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'upload.php', true);
+                
+                // Track upload progress
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentage = (event.loaded / event.total) * 100;
+                        progressBar.style.width = percentage + '%';
+                    }
+                };
+                
+                // Define what happens on successful data submission
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            resultDiv.textContent = JSON.stringify(response, null, 2);
+                            
+                            if (response.success && response.url) {
+                                // Display the image
+                                imagePreview.innerHTML = `<p>Uploaded Image:</p><img src="${response.url}" alt="Uploaded Image">` +
+                                                        `<p><a href="${response.url}" target="_blank">Open in new tab</a></p>`;
+                            }
+                        } catch (e) {
+                            resultDiv.textContent = 'Error parsing response: ' + xhr.responseText;
+                        }
+                    } else {
+                        resultDiv.textContent = 'Upload failed. Status: ' + xhr.status;
+                    }
+                };
+                
+                // Define what happens in case of error
+                xhr.onerror = function() {
+                    resultDiv.textContent = 'Request failed';
+                };
+                
+                // Send the form data
+                xhr.send(formData);
+                
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
