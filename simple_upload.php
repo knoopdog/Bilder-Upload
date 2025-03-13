@@ -4,16 +4,19 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Content-Type: application/json; charset=UTF-8');
 
+// Include directory helper
+require_once 'ensure_dir.php';
+
 // Basic configuration
 $uploadDir = 'images/';
 $maxSize = 10 * 1024 * 1024; // 10 MB max file size
 
-// Ensure the upload directory exists with correct permissions
+// Ensure upload directory exists (extra insurance beyond ensure_dir.php)
 if (!file_exists($uploadDir)) {
     if (!mkdir($uploadDir, 0777, true)) {
         die(json_encode([
             'success' => false,
-            'message' => 'Failed to create upload directory'
+            'message' => 'Failed to create upload directory: ' . $uploadDir
         ]));
     }
     chmod($uploadDir, 0777);
@@ -79,14 +82,14 @@ if (!in_array($extension, $allowedTypes)) {
 if (!move_uploaded_file($file['tmp_name'], $uploadPath)) {
     die(json_encode([
         'success' => false,
-        'message' => 'Failed to save the uploaded file'
+        'message' => 'Failed to save the uploaded file to ' . $uploadPath
     ]));
 }
 
 // Success! Generate the URL to the file
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
 $host = $_SERVER['HTTP_HOST'];
-$fileUrl = $protocol . $host . dirname($_SERVER['REQUEST_URI']) . '/' . $uploadPath;
+$fileUrl = $protocol . $host . '/images/' . $newFilename;
 
 // Return success response
 echo json_encode([
