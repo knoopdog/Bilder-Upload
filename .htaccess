@@ -1,0 +1,20 @@
+# Enable cross-origin resource sharing
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Methods "POST, GET, OPTIONS"
+Header set Access-Control-Allow-Headers "Content-Type"
+
+# Set PHP memory limit and execution time for large image processing
+php_value memory_limit 256M
+php_value upload_max_filesize 20M
+php_value post_max_size 20M
+php_value max_execution_time 300
+
+# Prevent directory listing
+Options -Indexes
+
+# Set permissions for images directory
+<Directory "images">
+  Order Allow,Deny
+  Allow from all
+  Options -Indexes
+</Directory>
