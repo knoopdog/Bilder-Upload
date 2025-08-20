@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Image Upload & CSV Generator</title>
+    <title>JTL-Wawi Bilder Upload & CSV Generator</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,9 +13,9 @@
             <div class="header-content">
                 <div class="logo-section">
                     <span class="logo-icon">☁</span>
-                    <h1>ImageFlow Pro</h1>
+                    <h1>JTL-Wawi Bilder Upload</h1>
                 </div>
-                <p class="subtitle">Professional Image Processing & CSV Export Platform</p>
+                <p class="subtitle">Professionelle Bildverarbeitung & CSV Export Plattform</p>
             </div>
         </header>
 
@@ -25,22 +25,22 @@
             <section class="upload-card">
                 <div class="card-header">
                     <span class="header-icon">📤</span>
-                    <h2>Upload & Process Images</h2>
-                    <p>Drag and drop your product images or select files to get started</p>
+                    <h2>Bilder hochladen & verarbeiten</h2>
+                    <p>Ziehen Sie Ihre Produktbilder hierher oder wählen Sie Dateien aus</p>
                 </div>
                 
                 <div class="file-drop-zone" id="drop-area">
                     <div class="drop-zone-content">
                         <span class="drop-icon">☁</span>
-                        <h3>Drop images here</h3>
-                        <p>or</p>
+                        <h3>Bilder hier ablegen</h3>
+                        <p>oder</p>
                         <label class="select-files-btn">
                             <span>📁</span>
-                            Select Files
+                            Dateien auswählen
                             <input type="file" id="file-input" multiple accept="image/*">
                         </label>
                         <div class="file-info">
-                            <p><small>Supports: JPEG, PNG, GIF • Max size: 10MB per file</small></p>
+                            <p><small>Unterstützt: JPEG, PNG, GIF • Max. Größe: 10MB pro Datei</small></p>
                         </div>
                     </div>
                 </div>
@@ -51,8 +51,8 @@
                             <input type="checkbox" id="auto-rename" checked>
                             <span class="checkbox-mark"></span>
                             <div class="checkbox-label">
-                                <span class="label-title">Auto-format filenames</span>
-                                <span class="label-desc">Convert to lowercase, replace spaces with hyphens</span>
+                                <span class="label-title">Dateinamen automatisch formatieren</span>
+                                <span class="label-desc">Kleinschreibung, Leerzeichen durch Bindestriche ersetzen</span>
                             </div>
                         </label>
                     </div>
@@ -60,8 +60,8 @@
                 
                 <button id="process-button" class="process-btn disabled" disabled>
                     <span>⚙️</span>
-                    <span>Process Images</span>
-                    <small>Resize, optimize & upload</small>
+                    <span>Bilder verarbeiten</span>
+                    <small>Größe ändern, optimieren & hochladen</small>
                 </button>
             </section>
 
@@ -69,8 +69,8 @@
             <section class="results-card hidden" id="results-section">
                 <div class="card-header">
                     <span class="header-icon">🖼️</span>
-                    <h2>Processed Images</h2>
-                    <p>Review and organize your processed product images</p>
+                    <h2>Verarbeitete Bilder</h2>
+                    <p>Überprüfen und organisieren Sie Ihre verarbeiteten Produktbilder</p>
                 </div>
                 
                 <div class="stats-dashboard">
@@ -80,7 +80,7 @@
                         </div>
                         <div class="stat-content">
                             <span class="stat-number" id="image-count">0</span>
-                            <span class="stat-label">Total Images</span>
+                            <span class="stat-label">Bilder gesamt</span>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -89,7 +89,7 @@
                         </div>
                         <div class="stat-content">
                             <span class="stat-number" id="article-count">0</span>
-                            <span class="stat-label">Articles</span>
+                            <span class="stat-label">Artikel</span>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -98,14 +98,14 @@
                         </div>
                         <div class="stat-content">
                             <span class="stat-number">1500px</span>
-                            <span class="stat-label">Max Dimension</span>
+                            <span class="stat-label">Max. Abmessung</span>
                         </div>
                     </div>
                 </div>
                 
                 <div class="drag-drop-hint">
                     <span>💡</span>
-                    <span><strong>Pro Tip:</strong> Drag and drop images between columns to reorganize your product gallery</span>
+                    <span><strong>Profi-Tipp:</strong> Ziehen Sie Bilder zwischen Spalten, um Ihre Produktgalerie zu organisieren</span>
                 </div>
                 
                 <div class="table-container">
@@ -115,35 +115,35 @@
                                 <tr>
                                     <th class="article-col">
                                         <span>🏷️</span>
-                                        Article Number
+                                        Artikelnummer
                                     </th>
                                     <th class="image-col">
                                         <span>🖼️</span>
-                                        Image 1 (Back)
+                                        Bild 1 (Rückseite)
                                     </th>
                                     <th class="image-col">
                                         <span>🖼️</span>
-                                        Image 2 (Front)
+                                        Bild 2 (Vorderseite)
                                     </th>
                                     <th class="image-col">
                                         <span>🖼️</span>
-                                        Image 3
+                                        Bild 3
                                     </th>
                                     <th class="image-col">
                                         <span>🖼️</span>
-                                        Image 4
+                                        Bild 4
                                     </th>
                                     <th class="image-col">
                                         <span>🖼️</span>
-                                        Image 5
+                                        Bild 5
                                     </th>
                                     <th class="image-col">
                                         <span>🖼️</span>
-                                        Image 6
+                                        Bild 6
                                     </th>
                                     <th class="image-col">
                                         <span>🖼️</span>
-                                        Image 7
+                                        Bild 7
                                     </th>
                                 </tr>
                             </thead>
@@ -157,8 +157,8 @@
                 <div class="action-section">
                     <button id="download-csv" class="download-btn">
                         <span>💾</span>
-                        <span>Download CSV Export</span>
-                        <small>Product image URLs</small>
+                        <span>CSV Export herunterladen</span>
+                        <small>Produktbild URLs</small>
                     </button>
                 </div>
             </section>
@@ -166,7 +166,7 @@
         
         <!-- Footer -->
         <footer class="app-footer">
-            <p>&copy; 2024 ImageFlow Pro • Professional Image Processing Platform</p>
+            <p>&copy; 2024 JTL-Wawi Bilder Upload • Professionelle Bildverarbeitung Plattform</p>
         </footer>
     </div>
     

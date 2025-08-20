@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const fileCountInfo = document.createElement('div');
             fileCountInfo.className = 'file-count-info';
             fileCountInfo.style.cssText = 'margin-top: 1rem; padding: 0.75rem; background: #dbeafe; border-radius: 0.5rem; color: #1e40af; text-align: center; font-weight: 500;';
-            fileCountInfo.textContent = `${uploadedFiles.length} image${uploadedFiles.length > 1 ? 's' : ''} selected and ready for processing`;
+            fileCountInfo.textContent = `${uploadedFiles.length} Bild${uploadedFiles.length > 1 ? 'er' : ''} ausgewählt und bereit zur Verarbeitung`;
             
             // Remove any existing file count info
             const existingInfo = dropArea.parentNode.querySelector('.file-count-info');
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dropArea.parentNode.insertBefore(fileCountInfo, dropArea.nextSibling);
         } else {
             console.log('No valid image files found');
-            showNotification('Please select valid image files (JPEG, JPG, PNG, GIF).', 'error');
+            showNotification('Bitte wählen Sie gültige Bilddateien aus (JPEG, JPG, PNG, GIF).', 'error');
         }
     }
     
@@ -159,19 +159,19 @@ document.addEventListener('DOMContentLoaded', function() {
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <span style="font-size: 1.5rem; color: var(--primary-color); animation: spin 1s linear infinite;">⚙️</span>
-                    <p style="margin: 0; font-weight: 600; color: var(--gray-700);">Processing and uploading images...</p>
+                    <p style="margin: 0; font-weight: 600; color: var(--gray-700);">Bilder werden verarbeitet und hochgeladen...</p>
                 </div>
                 <button id="cancel-upload" style="padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem;">
-                    Cancel Upload
+                    Upload abbrechen
                 </button>
             </div>
             <div class="progress-bar"><div class="progress"></div></div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
-                <p id="upload-progress-text" style="margin: 0; font-size: 0.9rem; color: var(--gray-600);">Initializing...</p>
+                <p id="upload-progress-text" style="margin: 0; font-size: 0.9rem; color: var(--gray-600);">Initialisierung...</p>
                 <div id="upload-stats" style="font-size: 0.8rem; color: var(--gray-500);">
                     <span id="success-count">0</span> ✅ | 
                     <span id="error-count">0</span> ❌ | 
-                    <span id="queue-status">Preparing...</span>
+                    <span id="queue-status">Vorbereitung...</span>
                 </div>
             </div>
         `;
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cancelButton = document.getElementById('cancel-upload');
         cancelButton.addEventListener('click', () => {
             uploadCancelled = true;
-            showNotification('Upload cancelled by user', 'warning');
+            showNotification('Upload vom Benutzer abgebrochen', 'warning');
             setTimeout(() => {
                 statusElement.remove();
             }, 1000);
@@ -227,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update queue status
         let queueStatus = document.getElementById('queue-status');
         if (queueStatus) {
-            queueStatus.textContent = `${batches.length} batches queued`;
+            queueStatus.textContent = `${batches.length} Stapel in Warteschlange`;
         }
         
         // Process each batch sequentially
@@ -245,10 +245,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const progressText = document.getElementById('upload-progress-text');
             queueStatus = document.getElementById('queue-status');
             if (progressText) {
-                progressText.textContent = `Processing batch ${batchIndex + 1} of ${batches.length} (${processedCount}/${totalFiles} images completed)`;
+                progressText.textContent = `Verarbeite Stapel ${batchIndex + 1} von ${batches.length} (${processedCount}/${totalFiles} Bilder abgeschlossen)`;
             }
             if (queueStatus) {
-                queueStatus.textContent = `Batch ${batchIndex + 1}/${batches.length}`;
+                queueStatus.textContent = `Stapel ${batchIndex + 1}/${batches.length}`;
             }
             
             for (const file of batch) {
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Fortschrittstext aktualisieren
                             const progressText = document.getElementById('upload-progress-text');
                             if (progressText) {
-                                progressText.textContent = `Processing ${processedCount} of ${totalFiles} images (${Math.round(percentage)}%)`;
+                                progressText.textContent = `Verarbeite ${processedCount} von ${totalFiles} Bildern (${Math.round(percentage)}%)`;
                             }
                             
                             // Datei in Artikelstruktur einfügen
@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Final status update
         queueStatus = document.getElementById('queue-status');
         if (queueStatus) {
-            queueStatus.textContent = `Completed! ${successCount}✅ ${errorCount}❌`;
+            queueStatus.textContent = `Abgeschlossen! ${successCount}✅ ${errorCount}❌`;
         }
         
         // Remove status display after a short delay to show final results
@@ -345,10 +345,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fehler überprüfen
         const errors = uploadResults.filter(result => result.error);
         if (errors.length > 0) {
-            showNotification(`${errors.length} images could not be uploaded. Check console for details.`, 'error');
+            showNotification(`${errors.length} Bilder konnten nicht hochgeladen werden. Prüfen Sie die Konsole für Details.`, 'error');
             console.error('Upload errors:', errors);
         } else {
-            showNotification(`Successfully processed ${uploadResults.length} images!`, 'success');
+            showNotification(`${uploadResults.length} Bilder erfolgreich verarbeitet!`, 'success');
         }
         
         // Bilder in Artikelstruktur sortieren
@@ -586,11 +586,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function downloadCSV() {
         if (Object.keys(processedArticles).length === 0) {
-            showNotification('No processed images available for CSV export.', 'warning');
+            showNotification('Keine verarbeiteten Bilder für CSV-Export verfügbar.', 'warning');
             return;
         }
         
-        showNotification('Generating CSV export...', 'info');
+        showNotification('CSV-Export wird erstellt...', 'info');
         
         let csvContent = 'Artikelnummer;Image1;Image2;Image3;Image4;Image5;Image6;Image7\n';
         
@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
         a.click();
         document.body.removeChild(a);
         
-        showNotification(`CSV export completed: ${filename}`, 'success');
+        showNotification(`CSV-Export abgeschlossen: ${filename}`, 'success');
     }
     
     // Artikelnummer aus Dateinamen extrahieren (6-8 stellige Zahl)
