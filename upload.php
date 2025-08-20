@@ -67,9 +67,10 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
     logMessage('Upload error: ' . $file['error']);
     $response = ['success' => false, 'message' => 'Upload failed with error code: ' . $file['error']];
 } else {
-    // Sanitize filename
+    // Sanitize filename and convert all to JPEG
     $originalFilename = basename($file['name']);
-    $sanitizedFilename = strtolower(preg_replace('/[^a-zA-Z0-9.\-]/', '-', $originalFilename));
+    $baseName = pathinfo($originalFilename, PATHINFO_FILENAME);
+    $sanitizedFilename = strtolower(preg_replace('/[^a-zA-Z0-9.\-]/', '-', $baseName)) . '.jpg';
     $uploadPath = $uploadDir . $sanitizedFilename;
     logMessage('Sanitized filename: ' . $sanitizedFilename);
     logMessage('Full upload path: ' . $uploadPath);
@@ -131,39 +132,21 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         // Create a new canvas for the resized image
         $resized = imagecreatetruecolor($targetWidth, $targetHeight);
         
-        // For PNG, preserve alpha channel
+        // For PNG, create white background for JPEG conversion
         if ($imageInfo[2] === IMAGETYPE_PNG) {
-            imagealphablending($resized, false);
-            imagesavealpha($resized, true);
-            
-            // Allocate transparent color
-            $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
-            
-            // Fill with transparent color
-            imagefilledrectangle($resized, 0, 0, $targetWidth, $targetHeight, $transparent);
+            $white = imagecolorallocate($resized, 255, 255, 255);
+            imagefilledrectangle($resized, 0, 0, $targetWidth, $targetHeight, $white);
         }
         
         // Resize proportionally (no cropping)
         imagecopyresampled($resized, $image, 0, 0, 0, 0, $targetWidth, $targetHeight, $srcWidth, $srcHeight);
         logMessage('Image resized to ' . $targetWidth . 'x' . $targetHeight);
         
-        // Save the processed image
+        // Save all processed images as JPEG for better compression
         $saveResult = false;
         try {
-            switch ($imageInfo[2]) {
-                case IMAGETYPE_JPEG:
-                    $saveResult = imagejpeg($resized, $uploadPath, $jpegQuality);
-                    logMessage('Saved as JPEG with quality: ' . $jpegQuality);
-                    break;
-                case IMAGETYPE_PNG:
-                    $saveResult = imagepng($resized, $uploadPath, $pngCompression);
-                    logMessage('Saved as PNG with compression: ' . $pngCompression);
-                    break;
-                case IMAGETYPE_GIF:
-                    $saveResult = imagegif($resized, $uploadPath);
-                    logMessage('Saved as GIF');
-                    break;
-            }
+            $saveResult = imagejpeg($resized, $uploadPath, $jpegQuality);
+            logMessage('Saved as JPEG with quality: ' . $jpegQuality);
             
             if (!$saveResult) {
                 throw new Exception("Failed to save image to $uploadPath");

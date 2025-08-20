@@ -250,6 +250,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         fileName = fileName.toLowerCase().replace(/[ _]/g, '-');
                     }
                     
+                    // Convert filename to .jpg extension (all images are saved as JPEG)
+                    const baseName = fileName.replace(/\.(png|gif|jpe?g)$/i, '');
+                    fileName = baseName + '.jpg';
+                    
                     // Upload-Promise erstellen
                     const uploadPromise = uploadFileToServer(file, fileName)
                         .then(response => {

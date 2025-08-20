@@ -73,7 +73,10 @@ if ($file['size'] > $maxSize) {
 // Get file information and create a safe filename
 $originalName = basename($file['name']);
 $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-$newFilename = strtolower(preg_replace('/[^a-zA-Z0-9.\-]/', '-', $originalName));
+$baseName = pathinfo($originalName, PATHINFO_FILENAME);
+
+// Convert all images to JPEG format - change extension to .jpg
+$newFilename = strtolower(preg_replace('/[^a-zA-Z0-9.\-]/', '-', $baseName)) . '.jpg';
 $uploadPath = $uploadDir . $newFilename;
 
 // Make sure it's an image
@@ -148,17 +151,11 @@ if ($sourceWidth > $sourceHeight) {
 // Create new canvas for the resized image
 $targetImage = imagecreatetruecolor($targetWidth, $targetHeight);
 
-// Handle transparency for PNGs
+// Handle transparency for PNGs by creating white background (since we're converting to JPEG)
 if ($imageInfo[2] === IMAGETYPE_PNG) {
-    // Set blend mode
-    imagealphablending($targetImage, false);
-    imagesavealpha($targetImage, true);
-    
-    // Allocate transparent color
-    $transparent = imagecolorallocatealpha($targetImage, 0, 0, 0, 127);
-    
-    // Fill with transparent color
-    imagefilledrectangle($targetImage, 0, 0, $targetWidth, $targetHeight, $transparent);
+    // For JPEG conversion, create a white background instead of transparency
+    $white = imagecolorallocate($targetImage, 255, 255, 255);
+    imagefilledrectangle($targetImage, 0, 0, $targetWidth, $targetHeight, $white);
 }
 
 // Resize the image proportionally (no cropping)
@@ -171,19 +168,8 @@ imagecopyresampled(
     $sourceWidth, $sourceHeight    // Source width, height (full source)
 );
 
-// Save the processed image
-$saveResult = false;
-switch ($imageInfo[2]) {
-    case IMAGETYPE_JPEG:
-        $saveResult = imagejpeg($targetImage, $uploadPath, $jpegQuality);
-        break;
-    case IMAGETYPE_PNG:
-        $saveResult = imagepng($targetImage, $uploadPath, $pngCompression);
-        break;
-    case IMAGETYPE_GIF:
-        $saveResult = imagegif($targetImage, $uploadPath);
-        break;
-}
+// Save all images as JPEG for better compression and consistency
+$saveResult = imagejpeg($targetImage, $uploadPath, $jpegQuality);
 
 // Clean up
 imagedestroy($sourceImage);
