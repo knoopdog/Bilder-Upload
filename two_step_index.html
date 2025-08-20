@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilder-Upload und CSV-Generator (1500x1500) - Zweistufig</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Zusätzliche Stile für die zweistufige Version */
+        .step {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4a6fa5;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .step h3 {
+            margin-top: 0;
+            color: #4a6fa5;
+        }
+        
+        .step-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            background-color: #4a6fa5;
+            color: white;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .upload-result {
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .upload-result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .upload-result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .upload-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .preview-item {
+            width: 150px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .preview-item img {
+            max-width: 100%;
+            max-height: 100px;
+            object-fit: contain;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        
+        .preview-item .file-name {
+            font-size: 12px;
+            word-break: break-all;
+        }
+        
+        .button-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .button-container .button {
+            flex: 1;
+        }
+        
+        .upload-status-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 15px;
+            background-color: #f8f9fa;
+        }
+        
+        .upload-status-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .upload-status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .status-icon.success {
+            color: #28a745;
+        }
+        
+        .status-icon.error {
+            color: #dc3545;
+        }
+        
+        .status-icon.pending {
+            color: #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bilder-Upload und CSV-Generator (Zweistufig)</h1>
+        
+        <div class="upload-section">
+            <div class="step">
+                <h3><span class="step-number">1</span> Bilder auswählen</h3>
+                <div class="file-drop-area" id="drop-area">
+                    <p>Bilder hierher ziehen oder</p>
+                    <label class="file-button">
+                        Bilder auswählen
+                        <input type="file" id="file-input" multiple accept="image/*">
+                    </label>
+                </div>
+                
+                <div class="settings">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="auto-rename" checked>
+                        <span class="checkmark"></span>
+                        Dateinamen automatisch anpassen (alles kleinschreiben, Leerzeichen und _ durch - ersetzen)
+                    </label>
+                </div>
+                
+                <div id="selected-files-preview" class="upload-preview"></div>
+            </div>
+            
+            <div class="step">
+                <h3><span class="step-number">2</span> Bilder hochladen</h3>
+                <p>Lädt die Bilder auf den Server und verkleinert sie auf 1500×1500px mit optimaler Kompression.</p>
+                <button id="upload-button" class="button disabled" disabled>Bilder hochladen</button>
+                
+                <div id="upload-progress-container" style="display: none;">
+                    <div class="progress-bar">
+                        <div id="upload-progress" class="progress"></div>
+                    </div>
+                </div>
+                
+                <div id="upload-status" class="upload-status-list" style="display: none;"></div>
+            </div>
+            
+            <div class="step">
+                <h3><span class="step-number">3</span> Bilder verarbeiten</h3>
+                <p>Ordnet die hochgeladenen Bilder nach Artikelnummern und erstellt die Vorschau.</p>
+                <button id="process-button" class="button disabled" disabled>Bilder verarbeiten</button>
+            </div>
+        </div>
+
+        <div class="results-section hidden" id="results-section">
+            <h2>Verarbeitete Bilder</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Anzahl Bilder:</span>
+                    <span class="stat-value" id="image-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Anzahl Artikel:</span>
+                    <span class="stat-value" id="article-count">0</span>
+                </div>
+            </div>
+            
+            <div class="drag-drop-info">
+                <p><i class="hint-icon">ℹ️</i> <strong>Tipp:</strong> Bilder können per Drag & Drop zwischen den Spalten verschoben werden. Einfach ein Bild anklicken, halten und in eine andere Zelle ziehen.</p>
+            </div>
+            
+            <div class="image-table-container">
+                <table id="image-table">
+                    <thead>
+                        <tr>
+                            <th>Artikelnummer</th>
+                            <th>Image1 (back)</th>
+                            <th>Image2 (front)</th>
+                            <th>Image3</th>
+                            <th>Image4</th>
+                            <th>Image5</th>
+                            <th>Image6</th>
+                            <th>Image7</th>
+                        </tr>
+                    </thead>
+                    <tbody id="image-tbody">
+                        <!-- Wird durch JavaScript gefüllt -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="button-container">
+                <button id="download-csv" class="button">CSV-Datei herunterladen</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM-Elemente
+            const dropArea = document.getElementById('drop-area');
+            const fileInput = document.getElementById('file-input');
+            const uploadButton = document.getElementById('upload-button');
+            const processButton = document.getElementById('process-button');
+            const resultsSection = document.getElementById('results-section');
+            const imageCount = document.getElementById('image-count');
+            const articleCount = document.getElementById('article-count');
+            const imageTable = document.getElementById('image-tbody');
+            const downloadCsvButton = document.getElementById('download-csv');
+            const autoRenameCheckbox = document.getElementById('auto-rename');
+            const selectedFilesPreview = document.getElementById('selected-files-preview');
+            const uploadProgressContainer = document.getElementById('upload-progress-container');
+            const uploadProgress = document.getElementById('upload-progress');
+            const uploadStatusList = document.getElementById('upload-status');
+            
+            // Globale Variablen
+            let selectedFiles = [];
+            let uploadedFiles = []; // Files successfully uploaded to server
+            let processedArticles = {};
+            let hasFrontBack = {};
+            let dragSrcEl = null; // Element, das gezogen wird
+            const serverUrl = 'https://upload.karlknoop.com/'; // URL zur PHP-Datei
+            
+            // Event-Listener für Drag & Drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropArea.classList.add('highlight');
+            }
+            
+            function unhighlight() {
+                dropArea.classList.remove('highlight');
+            }
+            
+            // Event-Listener für Datei-Drop
+            dropArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+            
+            // Event-Listener für Datei-Auswahl über Button
+            fileInput.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+            
+            // Dateien verarbeiten
+            function handleFiles(files) {
+                selectedFiles = [...files].filter(file => {
+                    const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                    return validTypes.includes(file.type);
+                });
+                
+                if (selectedFiles.length > 0) {
+                    uploadButton.classList.remove('disabled');
+                    uploadButton.disabled = false;
+                    
+                    // Vorschau der ausgewählten Dateien anzeigen
+                    showSelectedFilesPreview();
+                } else {
+                    alert('Bitte wählen Sie gültige Bilddateien aus (JPEG, JPG, PNG).');
+                }
+            }
+            
+            // Vorschau der ausgewählten Dateien
+            function showSelectedFilesPreview() {
+                selectedFilesPreview.innerHTML = '';
+                
+                selectedFiles.forEach((file, index) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.alt = file.name;
+                    
+                    const fileName = document.createElement('div');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.name;
+                    
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(fileName);
+                    selectedFilesPreview.appendChild(previewItem);
+                });
+            }
+            
+            // Event-Listener für Upload-Button
+            uploadButton.addEventListener('click', uploadImages);
+            
+            // Bilder hochladen
+            async function uploadImages() {
+                if (selectedFiles.length === 0) return;
+                
+                // Zurücksetzen und UI vorbereiten
+                uploadedFiles = [];
+                uploadProgressContainer.style.display = 'block';
+                uploadProgress.style.width = '0%';
+                uploadStatusList.style.display = 'block';
+                uploadStatusList.innerHTML = '';
+                uploadButton.disabled = true;
+                
+                // Dateien hochladen
+                const autoRename = autoRenameCheckbox.checked;
+                const totalFiles = selectedFiles.length;
+                let successCount = 0;
+                
+                for (let i = 0; i < selectedFiles.length; i++) {
+                    const file = selectedFiles[i];
+                    let fileName = file.name;
+                    
+                    // Dateiname anpassen, wenn Option aktiviert
+                    if (autoRename) {
+                        fileName = fileName.toLowerCase().replace(/[ _]/g, '-');
+                    }
+                    
+                    // Status-Eintrag erstellen
+                    const statusItem = document.createElement('div');
+                    statusItem.className = 'upload-status-item';
+                    statusItem.innerHTML = `
+                        <span class="status-icon pending">⏳</span>
+                        <span>${fileName} (0%)</span>
+                    `;
+                    uploadStatusList.appendChild(statusItem);
+                    
+                    try {
+                        // Datei hochladen
+                        const result = await uploadFileToServer(file, fileName, (progress) => {
+                            // Aktualisiere den Status für diese Datei
+                            statusItem.querySelector('span:last-child').textContent = 
+                                `${fileName} (${Math.round(progress)}%)`;
+                        });
+                        
+                        // Erfolgreichen Upload markieren
+                        statusItem.innerHTML = `
+                            <span class="status-icon success">✅</span>
+                            <span>${fileName} - ${result.size} (${result.dimensions})</span>
+                        `;
+                        
+                        // Zu hochgeladenen Dateien hinzufügen
+                        uploadedFiles.push({
+                            file: file,
+                            fileName: fileName,
+                            serverUrl: result.url,
+                            articleNumber: extractArticleNumber(fileName)
+                        });
+                        
+                        successCount++;
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        statusItem.innerHTML = `
+                            <span class="status-icon error">❌</span>
+                            <span>${fileName} - Fehler: ${error.message}</span>
+                        `;
+                    }
+                    
+                    // Gesamtfortschritt aktualisieren
+                    const percentage = ((i + 1) / totalFiles) * 100;
+                    uploadProgress.style.width = percentage + '%';
+                }
+                
+                // Upload abgeschlossen
+                uploadButton.disabled = false;
+                
+                if (successCount > 0) {
+                    processButton.classList.remove('disabled');
+                    processButton.disabled = false;
+                    
+                    const resultMessage = document.createElement('div');
+                    resultMessage.className = 'upload-result success';
+                    resultMessage.textContent = `${successCount} von ${totalFiles} Bildern erfolgreich hochgeladen.`;
+                    uploadStatusList.appendChild(resultMessage);
+                } else {
+                    const resultMessage = document.createElement('div');
+                    resultMessage.className = 'upload-result error';
+                    resultMessage.textContent = 'Keine Bilder konnten hochgeladen werden.';
+                    uploadStatusList.appendChild(resultMessage);
+                }
+            }
+            
+            // Einzelne Datei zum Server hochladen
+            async function uploadFileToServer(file, fileName, progressCallback) {
+                return new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    const formData = new FormData();
+                    
+                    formData.append('image', file, fileName);
+                    
+                    // Upload-Fortschritt verfolgen
+                    xhr.upload.onprogress = (event) => {
+                        if (event.lengthComputable && progressCallback) {
+                            const percentage = (event.loaded / event.total) * 100;
+                            progressCallback(percentage);
+                        }
+                    };
+                    
+                    // Antwort-Handler
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                if (response.success) {
+                                    resolve(response);
+                                } else {
+                                    reject(new Error(response.message || 'Unbekannter Fehler'));
+                                }
+                            } catch (e) {
+                                reject(new Error('Fehler beim Parsen der Server-Antwort'));
+                            }
+                        } else {
+                            reject(new Error(`HTTP-Fehler: ${xhr.status}`));
+                        }
+                    };
+                    
+                    // Fehler-Handler
+                    xhr.onerror = function() {
+                        reject(new Error('Netzwerkfehler'));
+                    };
+                    
+                    // Anfrage senden
+                    xhr.open('POST', serverUrl + 'simple_upload.php', true);
+                    xhr.send(formData);
+                });
+            }
+            
+            // Event-Listener für Verarbeiten-Button
+            processButton.addEventListener('click', processImages);
+            
+            // Bilder verarbeiten
+            function processImages() {
+                if (uploadedFiles.length === 0) return;
+                
+                resetResults();
+                
+                // Dateien nach Artikelnummern gruppieren
+                const articleFiles = {};
+                
+                // Zuerst prüfen, welche Artikel front/back Bilder haben
+                uploadedFiles.forEach(fileObj => {
+                    const fileName = fileObj.fileName;
+                    const articleNumber = fileObj.articleNumber;
+                    
+                    if (articleNumber) {
+                        if (!hasFrontBack[articleNumber]) {
+                            hasFrontBack[articleNumber] = false;
+                        }
+                        
+                        if (fileName.toLowerCase().includes('front') || fileName.toLowerCase().includes('back')) {
+                            hasFrontBack[articleNumber] = true;
+                        }
+                        
+                        // Datei zur Artikelgruppe hinzufügen
+                        if (!articleFiles[articleNumber]) {
+                            articleFiles[articleNumber] = [];
+                        }
+                        
+                        articleFiles[articleNumber].push(fileObj);
+                    }
+                });
+                
+                // Bilder in Artikelstruktur sortieren
+                Object.keys(articleFiles).forEach(articleNumber => {
+                    const files = articleFiles[articleNumber];
+                    processedArticles[articleNumber] = ['', '', '', '', '', '', ''];
+                    
+                    if (hasFrontBack[articleNumber]) {
+                        // Mit front/back Sortierung
+                        files.forEach(fileObj => {
+                            const fileName = fileObj.fileName.toLowerCase();
+                            
+                            if (fileName.includes('back')) {
+                                processedArticles[articleNumber][0] = fileObj;
+                            } else if (fileName.includes('front')) {
+                                processedArticles[articleNumber][1] = fileObj;
+                            } else {
+                                // Freie Position finden
+                                for (let i = 2; i < 7; i++) {
+                                    if (processedArticles[articleNumber][i] === '') {
+                                        processedArticles[articleNumber][i] = fileObj;
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        // Einfach nach Reihenfolge sortieren
+                        files.forEach((fileObj, index) => {
+                            if (index < 7) {
+                                processedArticles[articleNumber][index] = fileObj;
+                            }
+                        });
+                    }
+                });
+                
+                // Statistiken aktualisieren
+                imageCount.textContent = uploadedFiles.length;
+                articleCount.textContent = Object.keys(processedArticles).length;
+                
+                // Tabelle befüllen
+                populateTable();
+                
+                // Ergebnisse anzeigen
+                resultsSection.classList.remove('hidden');
+            }
+            
+            // Drag & Drop Funktionen für die Tabellenzellen
+            function handleDragStart(e) {
+                this.style.opacity = '0.4';
+                this.classList.add('dragging');
+                dragSrcEl = this;
+                
+                // Speichere Informationen über das gezogene Element
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/html', this.innerHTML);
+                
+                // Speichere Artikel- und Zelleninformationen
+                const row = this.parentNode;
+                const articleNumber = row.firstChild.textContent;
+                const cellIndex = Array.from(row.children).indexOf(this) - 1; // -1 wegen der Artikelnummer-Zelle
+                
+                e.dataTransfer.setData('application/json', JSON.stringify({
+                    articleNumber: articleNumber,
+                    cellIndex: cellIndex
+                }));
+            }
+
+            function handleDragOver(e) {
+                if (e.preventDefault) {
+                    e.preventDefault(); // Erlaubt das Dropping
+                }
+                e.dataTransfer.dropEffect = 'move';
+                return false;
+            }
+
+            function handleDragEnter(e) {
+                this.classList.add('over');
+            }
+
+            function handleDragLeave(e) {
+                this.classList.remove('over');
+            }
+
+            function handleDrop(e) {
+                if (e.stopPropagation) {
+                    e.stopPropagation(); // Verhindert Browser-Redirect
+                }
+                
+                if (dragSrcEl != this) {
+                    // Hole die Daten des gezogenen Elements
+                    const sourceData = JSON.parse(e.dataTransfer.getData('application/json'));
+                    const sourceArticle = sourceData.articleNumber;
+                    const sourceIndex = sourceData.cellIndex;
+                    
+                    // Bestimme Zielinformationen
+                    const row = this.parentNode;
+                    const targetArticle = row.firstChild.textContent;
+                    const targetIndex = Array.from(row.children).indexOf(this) - 1; // -1 wegen der Artikelnummer-Zelle
+                    
+                    // Tausche die Bilder im Datenmodell
+                    const tempImg = processedArticles[sourceArticle][sourceIndex];
+                    processedArticles[sourceArticle][sourceIndex] = processedArticles[targetArticle][targetIndex];
+                    processedArticles[targetArticle][targetIndex] = tempImg;
+                    
+                    // Aktualisiere die Tabelle
+                    populateTable();
+                }
+                
+                return false;
+            }
+
+            function handleDragEnd(e) {
+                // Entferne alle visuellen Markierungen
+                document.querySelectorAll('td').forEach(function(td) {
+                    td.classList.remove('over');
+                    td.classList.remove('dragging');
+                    td.style.opacity = '1';
+                });
+            }
+            
+            // Tabelle mit Bildern befüllen
+            function populateTable() {
+                imageTable.innerHTML = '';
+                
+                // Artikel nach Nummer sortieren
+                const sortedArticles = Object.keys(processedArticles).sort();
+                
+                sortedArticles.forEach(articleNumber => {
+                    const tr = document.createElement('tr');
+                    const tdArticle = document.createElement('td');
+                    tdArticle.textContent = articleNumber;
+                    tr.appendChild(tdArticle);
+                    
+                    // Bilder für diesen Artikel hinzufügen
+                    processedArticles[articleNumber].forEach((fileObj, index) => {
+                        const td = document.createElement('td');
+                        
+                        // Mache die Zelle draggable
+                        td.setAttribute('draggable', 'true');
+                        td.classList.add('droppable-cell');
+                        td.dataset.position = index;
+                        td.dataset.article = articleNumber;
+                        
+                        // Füge Drag & Drop Event Listener hinzu
+                        td.addEventListener('dragstart', handleDragStart, false);
+                        td.addEventListener('dragenter', handleDragEnter, false);
+                        td.addEventListener('dragover', handleDragOver, false);
+                        td.addEventListener('dragleave', handleDragLeave, false);
+                        td.addEventListener('drop', handleDrop, false);
+                        td.addEventListener('dragend', handleDragEnd, false);
+                        
+                        if (fileObj && fileObj.serverUrl) {
+                            // Create a local preview from the server URL
+                            const img = document.createElement('img');
+                            img.src = fileObj.serverUrl;
+                            img.alt = fileObj.fileName;
+                            img.title = fileObj.fileName;
+                            img.addEventListener('click', (e) => {
+                                // Verhindere das Öffnen des Bildes beim Drag & Drop
+                                if (!td.classList.contains('dragging')) {
+                                    window.open(fileObj.serverUrl, '_blank');
+                                }
+                            });
+                            td.appendChild(img);
+                        }
+                        
+                        tr.appendChild(td);
+                    });
+                    
+                    imageTable.appendChild(tr);
+                });
+            }
+            
+            // CSV herunterladen
+            downloadCsvButton.addEventListener('click', downloadCSV);
+            
+            function downloadCSV() {
+                let csvContent = 'Artikelnummer;Image1;Image2;Image3;Image4;Image5;Image6;Image7\n';
+                
+                // Artikel nach Nummer sortieren
+                const sortedArticles = Object.keys(processedArticles).sort();
+                
+                // Zur Überprüfung der URLs in der Konsole anzeigen
+                console.log('Generiere CSV mit Bild-URLs');
+                
+                sortedArticles.forEach(articleNumber => {
+                    let row = articleNumber;
+                    
+                    processedArticles[articleNumber].forEach(fileObj => {
+                        // Verwende die Server-URL für die CSV-Datei
+                        if (fileObj && fileObj.serverUrl) {
+                            console.log('Server URL für CSV:', fileObj.serverUrl);
+                            row += ';' + fileObj.serverUrl;
+                        } else {
+                            row += ';';
+                        }
+                    });
+                    
+                    csvContent += row + '\n';
+                });
+                
+                console.log('CSV Vorschau:', csvContent.substring(0, 500) + '...');
+                
+                // CSV-Datei erstellen und herunterladen
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=latin-1;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.setAttribute('href', url);
+                a.setAttribute('download', 'artikelbilder.csv');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+            
+            // Artikelnummer aus Dateinamen extrahieren (6-8 stellige Zahl)
+            function extractArticleNumber(fileName) {
+                // Versuche zuerst eine 8-stellige Zahl zu finden
+                let match = fileName.match(/(\d{8})/);
+                if (match) return match[1];
+                
+                // Falls keine 8-stellige Zahl gefunden wurde, suche nach 6-stelligen Zahlen
+                match = fileName.match(/(\d{6})/);
+                return match ? match[1] : null;
+            }
+            
+            // Zurücksetzen der Ergebnisse
+            function resetResults() {
+                processedArticles = {};
+                hasFrontBack = {};
+                imageTable.innerHTML = '';
+            }
+        });
+    </script>
+</body>
+</html>

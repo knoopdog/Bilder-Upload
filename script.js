@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let processedArticles = {};
     let hasFrontBack = {};
     let dragSrcEl = null; // Element, das gezogen wird
+    const serverUrl = 'https://upload.karlknoop.com/'; // URL zur PHP-Datei
     
     // Event-Listener für Drag & Drop
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -75,8 +76,16 @@ document.addEventListener('DOMContentLoaded', function() {
     processButton.addEventListener('click', processImages);
     
     // Bilder verarbeiten
-    function processImages() {
+    async function processImages() {
         resetResults();
+        
+        // Status-Anzeige hinzufügen
+        const statusElement = document.createElement('div');
+        statusElement.className = 'upload-status';
+        statusElement.innerHTML = '<p>Bilder werden verarbeitet und hochgeladen...</p><div class="progress-bar"><div class="progress"></div></div>';
+        document.querySelector('.upload-section').appendChild(statusElement);
+        
+        const progressBar = statusElement.querySelector('.progress');
         
         // Dateien nach Artikelnummern gruppieren
         const autoRename = autoRenameCheckbox.checked;
@@ -98,8 +107,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Dann die Bilder verarbeiten
-        uploadedFiles.forEach(file => {
+        // Dann die Bilder verarbeiten und hochladen
+        const uploadPromises = [];
+        const totalFiles = uploadedFiles.length;
+        let processedCount = 0;
+        
+        for (const file of uploadedFiles) {
             let fileName = file.name;
             const articleNumber = extractArticleNumber(fileName);
             
@@ -109,17 +122,49 @@ document.addEventListener('DOMContentLoaded', function() {
                     fileName = fileName.toLowerCase().replace(/[ _]/g, '-');
                 }
                 
-                if (!articleFiles[articleNumber]) {
-                    articleFiles[articleNumber] = [];
-                }
+                // Upload-Promise erstellen
+                const uploadPromise = uploadFileToServer(file, fileName)
+                    .then(response => {
+                        // Fortschritt aktualisieren
+                        processedCount++;
+                        const percentage = (processedCount / totalFiles) * 100;
+                        progressBar.style.width = percentage + '%';
+                        
+                        // Datei in Artikelstruktur einfügen
+                        if (!articleFiles[articleNumber]) {
+                            articleFiles[articleNumber] = [];
+                        }
+                        
+                        // Speichere die Dateiinformationen mit der URL vom Server
+                        articleFiles[articleNumber].push({
+                            file: file,
+                            fileName: fileName,
+                            url: URL.createObjectURL(file), // Lokale Vorschau
+                            serverUrl: response.url // Tatsächliche URL auf dem Server
+                        });
+                        
+                        return { articleNumber, fileName, response };
+                    })
+                    .catch(error => {
+                        console.error('Fehler beim Hochladen:', error);
+                        return { error: true, fileName, message: error.message };
+                    });
                 
-                articleFiles[articleNumber].push({
-                    file: file,
-                    fileName: fileName,
-                    url: URL.createObjectURL(file)
-                });
+                uploadPromises.push(uploadPromise);
             }
-        });
+        }
+        
+        // Warten, bis alle Uploads abgeschlossen sind
+        const uploadResults = await Promise.all(uploadPromises);
+        
+        // Status-Anzeige entfernen
+        statusElement.remove();
+        
+        // Fehler überprüfen
+        const errors = uploadResults.filter(result => result.error);
+        if (errors.length > 0) {
+            alert(`${errors.length} Bilder konnten nicht hochgeladen werden. Siehe Konsole für Details.`);
+        }
         
         // Bilder in Artikelstruktur sortieren
         Object.keys(articleFiles).forEach(articleNumber => {
@@ -164,6 +209,43 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Ergebnisse anzeigen
         resultsSection.classList.remove('hidden');
+    }
+    
+    // Datei zum Server hochladen
+    async function uploadFileToServer(file, fileName) {
+        const formData = new FormData();
+        formData.append('image', file, fileName);
+        
+        // Verwende das einfache Upload-Script mit verbesserter Komprimierung und Größenänderung
+        const response = await fetch(serverUrl + 'simple_upload.php', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            console.error('HTTP error:', response.status, response.statusText);
+            try {
+                const errorText = await response.text();
+                console.error('Server response:', errorText);
+            } catch (e) {}
+            
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        let result;
+        try {
+            result = await response.json();
+            console.log('Upload response:', result);
+        } catch (e) {
+            console.error('Error parsing JSON response:', e);
+            throw new Error('Fehler beim Parsen der Server-Antwort');
+        }
+        
+        if (!result.success) {
+            throw new Error(result.message || 'Unbekannter Fehler beim Hochladen');
+        }
+        
+        return result;
     }
     
     // Drag & Drop Funktionen für die Tabellenzellen
@@ -301,15 +383,35 @@ document.addEventListener('DOMContentLoaded', function() {
         // Artikel nach Nummer sortieren
         const sortedArticles = Object.keys(processedArticles).sort();
         
+        // Protokoll und Host für absolute URL-Erstellung
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        
+        // Zur Überprüfung der URLs in der Konsole anzeigen
+        console.log('Generiere CSV mit Bild-URLs, Basis:', protocol + '//' + host);
+        
         sortedArticles.forEach(articleNumber => {
             let row = articleNumber;
             
             processedArticles[articleNumber].forEach(fileObj => {
-                row += ';' + (fileObj && fileObj.fileName ? fileObj.fileName : '');
+                // Verwende die Server-URL für die CSV-Datei, wenn verfügbar
+                if (fileObj && fileObj.serverUrl) {
+                    console.log('Server URL verfügbar:', fileObj.serverUrl);
+                    row += ';' + fileObj.serverUrl;
+                } else if (fileObj && fileObj.fileName) {
+                    // Fallback: Generiere eine URL aus dem Dateinamen
+                    const imageUrl = protocol + '//' + host + '/images/' + fileObj.fileName;
+                    console.log('Generierte URL:', imageUrl);
+                    row += ';' + imageUrl;
+                } else {
+                    row += ';';
+                }
             });
             
             csvContent += row + '\n';
         });
+        
+        console.log('CSV Vorschau:', csvContent.substring(0, 500) + '...');
         
         // CSV-Datei erstellen und herunterladen
         const blob = new Blob([csvContent], { type: 'text/csv;charset=latin-1;' });
@@ -322,9 +424,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.removeChild(a);
     }
     
-    // Artikelnummer aus Dateinamen extrahieren (8-stellige Zahl)
+    // Artikelnummer aus Dateinamen extrahieren (6-8 stellige Zahl)
     function extractArticleNumber(fileName) {
-        const match = fileName.match(/(\d{8})/);
+        // Versuche zuerst eine 8-stellige Zahl zu finden
+        let match = fileName.match(/(\d{8})/);
+        if (match) return match[1];
+        
+        // Falls keine 8-stellige Zahl gefunden wurde, suche nach 6-stelligen Zahlen
+        match = fileName.match(/(\d{6})/);
         return match ? match[1] : null;
     }
     

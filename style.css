@@ -310,6 +310,31 @@ td img {
     color: var(--primary-color);
 }
 
+/* Upload status and progress styles */
+.upload-status {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.progress-bar {
+    height: 20px;
+    background-color: #e0e0e0;
+    border-radius: 10px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background-color: var(--accent-color);
+    border-radius: 10px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
 @media (max-width: 768px) {
     .container {
         padding: 10px;

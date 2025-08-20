@@ -19,7 +19,8 @@ $uploadDir = __DIR__ . '/images/';
 logMessage('Upload directory: ' . $uploadDir);
 $maxWidth = 1500;
 $maxHeight = 1500;
-$compressionQuality = 60;
+$jpegQuality = 40;  // Higher compression (was 60)
+$pngCompression = 9; // Maximum PNG compression (0-9 scale)
 
 // Improved directory creation with error handling
 try {
@@ -89,6 +90,10 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
                 $image = imagecreatefrompng($file['tmp_name']);
                 logMessage('Image type: PNG');
                 break;
+            case IMAGETYPE_GIF:
+                $image = imagecreatefromgif($file['tmp_name']);
+                logMessage('Image type: GIF');
+                break;
             default:
                 logMessage('Unsupported image format: ' . $imageInfo[2]);
                 $response = ['success' => false, 'message' => 'Unsupported image format'];
@@ -120,6 +125,12 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         if ($imageInfo[2] === IMAGETYPE_PNG) {
             imagealphablending($resized, false);
             imagesavealpha($resized, true);
+            
+            // Allocate transparent color
+            $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
+            
+            // Fill with transparent color
+            imagefilledrectangle($resized, 0, 0, $maxWidth, $maxHeight, $transparent);
         }
         
         // Resize and crop
@@ -131,14 +142,16 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         try {
             switch ($imageInfo[2]) {
                 case IMAGETYPE_JPEG:
-                    $saveResult = imagejpeg($resized, $uploadPath, $compressionQuality);
-                    logMessage('Saved as JPEG with quality: ' . $compressionQuality);
+                    $saveResult = imagejpeg($resized, $uploadPath, $jpegQuality);
+                    logMessage('Saved as JPEG with quality: ' . $jpegQuality);
                     break;
                 case IMAGETYPE_PNG:
-                    // PNG quality is 0-9, convert from 0-100
-                    $pngQuality = round(9 - (($compressionQuality / 100) * 9));
-                    $saveResult = imagepng($resized, $uploadPath, $pngQuality);
-                    logMessage('Saved as PNG with quality: ' . $pngQuality);
+                    $saveResult = imagepng($resized, $uploadPath, $pngCompression);
+                    logMessage('Saved as PNG with compression: ' . $pngCompression);
+                    break;
+                case IMAGETYPE_GIF:
+                    $saveResult = imagegif($resized, $uploadPath);
+                    logMessage('Saved as GIF');
                     break;
             }
             
@@ -156,6 +169,11 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
         imagedestroy($image);
         imagedestroy($resized);
         
+        // Get final file size for logging
+        $finalSize = filesize($uploadPath);
+        $finalSizeKB = round($finalSize / 1024, 2);
+        logMessage('Final image size: ' . $finalSizeKB . ' KB');
+        
         // Generate full URL to the image (use the web-accessible path)
         $webImagePath = 'images/' . $sanitizedFilename; // Path relative to the web root
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
@@ -167,7 +185,9 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
             'success' => true, 
             'message' => 'File uploaded successfully',
             'filename' => $sanitizedFilename,
-            'url' => $fullUrl
+            'url' => $fullUrl,
+            'dimensions' => $maxWidth . 'x' . $maxHeight,
+            'size' => $finalSizeKB . ' KB'
         ];
     } else {
         logMessage('Invalid image file');

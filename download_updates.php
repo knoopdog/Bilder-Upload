@@ -18,7 +18,8 @@ $filesToInclude = [
     'manual_upload.php',
     'test_upload.php',
     'direct_upload_test.html',
-    'create_dir.php'
+    'create_dir.php',
+    'upload.php'
 ];
 
 // Check which files exist and copy them to temp directory
@@ -26,12 +27,16 @@ $foundFiles = [];
 foreach ($filesToInclude as $file) {
     if (file_exists($file)) {
         copy($file, $tempDir . '/' . $file);
-        $foundFiles[] = $file;
+        $foundFiles[] = [
+            'name' => $file,
+            'size' => filesize($file),
+            'modified' => date('Y-m-d H:i:s', filemtime($file))
+        ];
     }
 }
 
 // Create ZIP file
-$zipName = 'bilder_upload_update.zip';
+$zipName = 'bilder_upload_update_' . date('Ymd_His') . '.zip';
 $zipFile = $tempDir . '/' . $zipName;
 
 if (file_exists($zipFile)) {
@@ -40,19 +45,30 @@ if (file_exists($zipFile)) {
 
 $zip = new ZipArchive();
 if ($zip->open($zipFile, ZipArchive::CREATE) === TRUE) {
-    foreach ($foundFiles as $file) {
+    foreach ($foundFiles as $fileInfo) {
+        $file = $fileInfo['name'];
         $zip->addFile($tempDir . '/' . $file, $file);
     }
     
-    // Add current script.js and styles.css from GitHub
-    $scriptJsContent = file_get_contents('https://raw.githubusercontent.com/knoopdog/Bilder-Upload/main/script.js');
-    if ($scriptJsContent !== false) {
-        $zip->addFromString('script.js', $scriptJsContent);
+    // Include a README file with timestamp
+    $readmeContent = "# Bilder Upload Update\n\n";
+    $readmeContent .= "Generated: " . date('Y-m-d H:i:s') . "\n\n";
+    $readmeContent .= "This package contains the latest files for the Bilder Upload application.\n\n";
+    $readmeContent .= "## Files Included\n\n";
+    
+    foreach ($foundFiles as $fileInfo) {
+        $readmeContent .= "- " . $fileInfo['name'] . " (Size: " . round($fileInfo['size']/1024, 2) . " KB, Modified: " . $fileInfo['modified'] . ")\n";
     }
     
-    $stylesCssContent = file_get_contents('https://raw.githubusercontent.com/knoopdog/Bilder-Upload/main/style.css');
-    if ($stylesCssContent !== false) {
-        $zip->addFromString('style.css', $stylesCssContent);
+    $zip->addFromString('UPDATE_README.md', $readmeContent);
+    
+    // Create an .htaccess file for images directory
+    $htaccessContent = "# Allow access to images\nOptions +Indexes\nAllow from all\n";
+    $zip->addFromString('images/.htaccess', $htaccessContent);
+    
+    // Create the images directory in the ZIP
+    if (!$zip->addEmptyDir('images')) {
+        $errorMsg = "Failed to add images directory to ZIP";
     }
     
     $zip->close();
@@ -61,6 +77,16 @@ if ($zip->open($zipFile, ZipArchive::CREATE) === TRUE) {
     $zipCreated = false;
 }
 
+// Helper function to format file size
+function formatFileSize($bytes) {
+    $units = ['B', 'KB', 'MB', 'GB'];
+    $i = 0;
+    while ($bytes > 1024 && $i < count($units) - 1) {
+        $bytes /= 1024;
+        $i++;
+    }
+    return round($bytes, 2) . ' ' . $units[$i];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -85,13 +111,21 @@ if ($zip->open($zipFile, ZipArchive::CREATE) === TRUE) {
             padding: 20px;
             margin-bottom: 20px;
         }
-        ul {
-            list-style-type: none;
-            padding: 0;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
         }
-        li {
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
         }
         .success {
             color: #155724;
@@ -139,17 +173,25 @@ if ($zip->open($zipFile, ZipArchive::CREATE) === TRUE) {
         
         <?php if ($zipCreated): ?>
             <div class="success">
-                ZIP file created successfully with the latest versions of all script files.
+                ZIP file created successfully with the current local files.
+                <p>Package generated: <?= date('Y-m-d H:i:s') ?></p>
             </div>
             
-            <p>The following files are included in the update package:</p>
-            <ul>
-                <?php foreach ($foundFiles as $file): ?>
-                    <li><?php echo htmlspecialchars($file); ?></li>
+            <h3>Files Included in Package:</h3>
+            <table>
+                <tr>
+                    <th>File</th>
+                    <th>Size</th>
+                    <th>Last Modified</th>
+                </tr>
+                <?php foreach ($foundFiles as $fileInfo): ?>
+                <tr>
+                    <td><?= htmlspecialchars($fileInfo['name']) ?></td>
+                    <td><?= formatFileSize($fileInfo['size']) ?></td>
+                    <td><?= $fileInfo['modified'] ?></td>
+                </tr>
                 <?php endforeach; ?>
-                <li>script.js (latest from GitHub)</li>
-                <li>style.css (latest from GitHub)</li>
-            </ul>
+            </table>
             
             <p>
                 <a href="<?php echo $tempDir . '/' . $zipName; ?>" class="button" download>Download Update Package</a>
@@ -159,21 +201,56 @@ if ($zip->open($zipFile, ZipArchive::CREATE) === TRUE) {
                 <strong>How to install the update:</strong>
                 <ol>
                     <li>Download the ZIP file using the button above</li>
-                    <li>Extract all files from the ZIP</li>
-                    <li>Upload all files to your web server, replacing the existing files</li>
-                    <li>Test the application to ensure it's working correctly</li>
+                    <li>Extract all files to your local computer</li>
+                    <li>Upload all files to your web server, preserving the directory structure</li>
+                    <li>Make sure the <code>images</code> directory exists and has write permissions (0777)</li>
+                    <li>Test the application by uploading some images</li>
+                    <li>Check that the images are saved to the <code>images</code> directory</li>
                 </ol>
             </div>
         <?php else: ?>
             <div class="error">
                 Failed to create ZIP file. Please check server permissions.
+                <?php if (isset($errorMsg)): ?>
+                <p>Error: <?= $errorMsg ?></p>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     </div>
     
     <div class="container">
-        <h2>Manual File Upload</h2>
-        <p>If you prefer to upload files individually, you can use the manual upload utility:</p>
+        <h2>Directory Structure Check</h2>
+        
+        <p>Checking if the images directory exists and is writable:</p>
+        
+        <?php
+        // Check images directory
+        if (!file_exists('images')) {
+            echo '<div class="error">The "images" directory does not exist! Create it with this command:<br><code>mkdir images</code><br>And set permissions: <code>chmod 777 images</code></div>';
+        } elseif (!is_writable('images')) {
+            echo '<div class="error">The "images" directory exists but is not writable! Set permissions with:<br><code>chmod 777 images</code></div>';
+        } else {
+            echo '<div class="success">The "images" directory exists and is writable.</div>';
+        }
+        ?>
+        
+        <h3>Test Creating a File in Images Directory</h3>
+        <?php
+        // Try to create a test file in the images directory
+        $testFile = 'images/test_' . time() . '.txt';
+        $testContent = 'Test file created at ' . date('Y-m-d H:i:s');
+        
+        if (@file_put_contents($testFile, $testContent)) {
+            echo '<div class="success">Successfully created a test file in the images directory: ' . htmlspecialchars($testFile) . '</div>';
+            @unlink($testFile); // Clean up
+        } else {
+            echo '<div class="error">Failed to create a test file in the images directory. Check permissions.</div>';
+        }
+        ?>
+    </div>
+    
+    <div class="container">
+        <h2>Other Tools</h2>
         <p>
             <a href="manual_upload.php" class="button">Go to Manual Upload</a>
         </p>
