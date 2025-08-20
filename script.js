@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Event-Listener für Drag & Drop
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
     });
     
     function preventDefaults(e) {
@@ -92,24 +93,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Event-Listener für Datei-Drop
-    dropArea.addEventListener('drop', handleDrop, false);
+    dropArea.addEventListener('drop', handleFileDrop, false);
     
-    function handleDrop(e) {
+    function handleFileDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
         const dt = e.dataTransfer;
         const files = dt.files;
         handleFiles(files);
     }
     
     // Event-Listener für Datei-Auswahl über Button
-    fileInput.addEventListener('change', function() {
-        handleFiles(this.files);
+    fileInput.addEventListener('change', function(e) {
+        console.log('File input change event triggered');
+        console.log('Files selected:', e.target.files.length);
+        handleFiles(e.target.files);
+        // Reset input so same files can be selected again
+        e.target.value = '';
     });
     
     // Dateien verarbeiten
     function handleFiles(files) {
+        console.log('handleFiles called with', files.length, 'files');
         uploadedFiles = [...files].filter(file => {
-            const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-            return validTypes.includes(file.type);
+            const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
+            const isValid = validTypes.includes(file.type);
+            console.log('File:', file.name, 'Type:', file.type, 'Valid:', isValid);
+            return isValid;
         });
         
         if (uploadedFiles.length > 0) {
@@ -130,7 +140,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             dropArea.parentNode.insertBefore(fileCountInfo, dropArea.nextSibling);
         } else {
-            showNotification('Please select valid image files (JPEG, JPG, PNG).', 'error');
+            console.log('No valid image files found');
+            showNotification('Please select valid image files (JPEG, JPG, PNG, GIF).', 'error');
         }
     }
     
