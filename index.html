@@ -3,71 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bilder-Upload und CSV-Generator (1500x1500)</title>
+    <title>Professional Image Upload & CSV Generator</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>Bilder-Upload und CSV-Generator</h1>
-        
-        <div class="upload-section">
-            <h2>Bilder hochladen</h2>
-            <div class="file-drop-area" id="drop-area">
-                <p>Bilder hierher ziehen oder</p>
-                <label class="file-button">
-                    Bilder auswählen
-                    <input type="file" id="file-input" multiple accept="image/*">
-                </label>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <i class="fas fa-cloud-upload-alt logo-icon"></i>
+                    <h1>ImageFlow Pro</h1>
+                </div>
+                <p class="subtitle">Professional Image Processing & CSV Export Platform</p>
             </div>
-            <div class="settings">
-                <label class="checkbox-container">
-                    <input type="checkbox" id="auto-rename" checked>
-                    <span class="checkmark"></span>
-                    Dateinamen automatisch anpassen (alles kleinschreiben, Leerzeichen und _ durch - ersetzen)
-                </label>
-            </div>
-            <button id="process-button" class="button disabled" disabled>Bilder verarbeiten</button>
-        </div>
+        </header>
 
-        <div class="results-section hidden" id="results-section">
-            <h2>Verarbeitete Bilder</h2>
-            <div class="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Anzahl Bilder:</span>
-                    <span class="stat-value" id="image-count">0</span>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-card">
+                <div class="card-header">
+                    <i class="fas fa-upload"></i>
+                    <h2>Upload & Process Images</h2>
+                    <p>Drag and drop your product images or select files to get started</p>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Anzahl Artikel:</span>
-                    <span class="stat-value" id="article-count">0</span>
+                
+                <div class="file-drop-zone" id="drop-area">
+                    <div class="drop-zone-content">
+                        <i class="fas fa-cloud-upload-alt drop-icon"></i>
+                        <h3>Drop images here</h3>
+                        <p>or</p>
+                        <label class="select-files-btn">
+                            <i class="fas fa-folder-open"></i>
+                            Select Files
+                            <input type="file" id="file-input" multiple accept="image/*">
+                        </label>
+                        <div class="file-info">
+                            <p><small>Supports: JPEG, PNG, GIF • Max size: 10MB per file</small></p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="drag-drop-info">
-                <p><i class="hint-icon">ℹ️</i> <strong>Tipp:</strong> Bilder können per Drag & Drop zwischen den Spalten verschoben werden. Einfach ein Bild anklicken, halten und in eine andere Zelle ziehen.</p>
-            </div>
-            
-            <div class="image-table-container">
-                <table id="image-table">
-                    <thead>
-                        <tr>
-                            <th>Artikelnummer</th>
-                            <th>Image1 (back)</th>
-                            <th>Image2 (front)</th>
-                            <th>Image3</th>
-                            <th>Image4</th>
-                            <th>Image5</th>
-                            <th>Image6</th>
-                            <th>Image7</th>
-                        </tr>
-                    </thead>
-                    <tbody id="image-tbody">
-                        <!-- Wird durch JavaScript gefüllt -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <button id="download-csv" class="button">CSV-Datei herunterladen</button>
-        </div>
+                
+                <div class="upload-options">
+                    <div class="option-group">
+                        <label class="modern-checkbox">
+                            <input type="checkbox" id="auto-rename" checked>
+                            <span class="checkbox-mark"></span>
+                            <div class="checkbox-label">
+                                <span class="label-title">Auto-format filenames</span>
+                                <span class="label-desc">Convert to lowercase, replace spaces with hyphens</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <button id="process-button" class="process-btn disabled" disabled>
+                    <i class="fas fa-cogs"></i>
+                    <span>Process Images</span>
+                    <small>Resize, optimize & upload</small>
+                </button>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-card hidden" id="results-section">
+                <div class="card-header">
+                    <i class="fas fa-images"></i>
+                    <h2>Processed Images</h2>
+                    <p>Review and organize your processed product images</p>
+                </div>
+                
+                <div class="stats-dashboard">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number" id="image-count">0</span>
+                            <span class="stat-label">Total Images</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-barcode"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number" id="article-count">0</span>
+                            <span class="stat-label">Articles</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-compress-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <span class="stat-number">1500px</span>
+                            <span class="stat-label">Max Dimension</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="drag-drop-hint">
+                    <i class="fas fa-info-circle"></i>
+                    <span><strong>Pro Tip:</strong> Drag and drop images between columns to reorganize your product gallery</span>
+                </div>
+                
+                <div class="table-container">
+                    <div class="table-wrapper">
+                        <table id="image-table" class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th class="article-col">
+                                        <i class="fas fa-barcode"></i>
+                                        Article Number
+                                    </th>
+                                    <th class="image-col">
+                                        <i class="fas fa-image"></i>
+                                        Image 1 (Back)
+                                    </th>
+                                    <th class="image-col">
+                                        <i class="fas fa-image"></i>
+                                        Image 2 (Front)
+                                    </th>
+                                    <th class="image-col">
+                                        <i class="fas fa-image"></i>
+                                        Image 3
+                                    </th>
+                                    <th class="image-col">
+                                        <i class="fas fa-image"></i>
+                                        Image 4
+                                    </th>
+                                    <th class="image-col">
+                                        <i class="fas fa-image"></i>
+                                        Image 5
+                                    </th>
+                                    <th class="image-col">
+                                        <i class="fas fa-image"></i>
+                                        Image 6
+                                    </th>
+                                    <th class="image-col">
+                                        <i class="fas fa-image"></i>
+                                        Image 7
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="image-tbody">
+                                <!-- Dynamically filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="action-section">
+                    <button id="download-csv" class="download-btn">
+                        <i class="fas fa-download"></i>
+                        <span>Download CSV Export</span>
+                        <small>Product image URLs</small>
+                    </button>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>&copy; 2024 ImageFlow Pro • Professional Image Processing Platform</p>
+        </footer>
     </div>
     
     <script src="script.js"></script>

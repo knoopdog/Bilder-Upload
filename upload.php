@@ -17,8 +17,7 @@ logMessage('Upload script started');
 // Configuration
 $uploadDir = __DIR__ . '/images/';
 logMessage('Upload directory: ' . $uploadDir);
-$maxWidth = 1500;
-$maxHeight = 1500;
+$maxDimension = 1500; // Maximum dimension for longest side
 $jpegQuality = 40;  // Higher compression (was 60)
 $pngCompression = 9; // Maximum PNG compression (0-9 scale)
 
@@ -101,25 +100,36 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
                 exit;
         }
         
-        // Calculate new dimensions (crop to square 1500x1500)
+        // Calculate new dimensions (proportional scaling based on longest side)
         $srcWidth = imagesx($image);
         $srcHeight = imagesy($image);
         logMessage('Source dimensions: ' . $srcWidth . 'x' . $srcHeight);
         
-        // Determine crop dimensions
+        // Calculate target dimensions
         if ($srcWidth > $srcHeight) {
-            $squareSize = $srcHeight;
-            $srcX = floor(($srcWidth - $srcHeight) / 2);
-            $srcY = 0;
+            // Landscape image - width is the longest side
+            if ($srcWidth > $maxDimension) {
+                $targetWidth = $maxDimension;
+                $targetHeight = round(($srcHeight * $maxDimension) / $srcWidth);
+            } else {
+                $targetWidth = $srcWidth;
+                $targetHeight = $srcHeight;
+            }
         } else {
-            $squareSize = $srcWidth;
-            $srcX = 0;
-            $srcY = floor(($srcHeight - $srcWidth) / 2);
+            // Portrait or square image - height is the longest side
+            if ($srcHeight > $maxDimension) {
+                $targetHeight = $maxDimension;
+                $targetWidth = round(($srcWidth * $maxDimension) / $srcHeight);
+            } else {
+                $targetWidth = $srcWidth;
+                $targetHeight = $srcHeight;
+            }
         }
-        logMessage('Crop dimensions: square size=' . $squareSize . ', srcX=' . $srcX . ', srcY=' . $srcY);
+        
+        logMessage('Target dimensions: ' . $targetWidth . 'x' . $targetHeight);
         
         // Create a new canvas for the resized image
-        $resized = imagecreatetruecolor($maxWidth, $maxHeight);
+        $resized = imagecreatetruecolor($targetWidth, $targetHeight);
         
         // For PNG, preserve alpha channel
         if ($imageInfo[2] === IMAGETYPE_PNG) {
@@ -130,12 +140,12 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
             $transparent = imagecolorallocatealpha($resized, 0, 0, 0, 127);
             
             // Fill with transparent color
-            imagefilledrectangle($resized, 0, 0, $maxWidth, $maxHeight, $transparent);
+            imagefilledrectangle($resized, 0, 0, $targetWidth, $targetHeight, $transparent);
         }
         
-        // Resize and crop
-        imagecopyresampled($resized, $image, 0, 0, $srcX, $srcY, $maxWidth, $maxHeight, $squareSize, $squareSize);
-        logMessage('Image resized to ' . $maxWidth . 'x' . $maxHeight);
+        // Resize proportionally (no cropping)
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, $targetWidth, $targetHeight, $srcWidth, $srcHeight);
+        logMessage('Image resized to ' . $targetWidth . 'x' . $targetHeight);
         
         // Save the processed image
         $saveResult = false;
@@ -186,7 +196,8 @@ if ($file['error'] !== UPLOAD_ERR_OK) {
             'message' => 'File uploaded successfully',
             'filename' => $sanitizedFilename,
             'url' => $fullUrl,
-            'dimensions' => $maxWidth . 'x' . $maxHeight,
+            'original_dimensions' => $srcWidth . 'x' . $srcHeight,
+            'new_dimensions' => $targetWidth . 'x' . $targetHeight,
             'size' => $finalSizeKB . ' KB'
         ];
     } else {

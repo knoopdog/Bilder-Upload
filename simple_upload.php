@@ -14,8 +14,7 @@ if (!file_exists($uploadDir)) {
 }
 $uploadDirWeb = 'images/'; // For web URLs
 $maxSize = 10 * 1024 * 1024; // 10 MB max file size
-$targetWidth = 1500;         // Target width
-$targetHeight = 1500;        // Target height
+$maxDimension = 1500;        // Maximum dimension for longest side
 $jpegQuality = 40;           // Higher compression (lower quality) for JPEGs
 $pngCompression = 9;         // Maximum compression for PNGs (0-9)
 
@@ -125,17 +124,25 @@ if (!$sourceImage) {
 $sourceWidth = imagesx($sourceImage);
 $sourceHeight = imagesy($sourceImage);
 
-// Determine crop coordinates (to maintain aspect ratio)
+// Calculate new dimensions (proportional scaling based on longest side)
 if ($sourceWidth > $sourceHeight) {
-    // Landscape image
-    $squareSize = $sourceHeight;
-    $sourceX = floor(($sourceWidth - $sourceHeight) / 2);
-    $sourceY = 0;
+    // Landscape image - width is the longest side
+    if ($sourceWidth > $maxDimension) {
+        $targetWidth = $maxDimension;
+        $targetHeight = round(($sourceHeight * $maxDimension) / $sourceWidth);
+    } else {
+        $targetWidth = $sourceWidth;
+        $targetHeight = $sourceHeight;
+    }
 } else {
-    // Portrait image
-    $squareSize = $sourceWidth;
-    $sourceX = 0;
-    $sourceY = floor(($sourceHeight - $sourceWidth) / 2);
+    // Portrait or square image - height is the longest side
+    if ($sourceHeight > $maxDimension) {
+        $targetHeight = $maxDimension;
+        $targetWidth = round(($sourceWidth * $maxDimension) / $sourceHeight);
+    } else {
+        $targetWidth = $sourceWidth;
+        $targetHeight = $sourceHeight;
+    }
 }
 
 // Create new canvas for the resized image
@@ -154,14 +161,14 @@ if ($imageInfo[2] === IMAGETYPE_PNG) {
     imagefilledrectangle($targetImage, 0, 0, $targetWidth, $targetHeight, $transparent);
 }
 
-// Resize and crop the image
+// Resize the image proportionally (no cropping)
 imagecopyresampled(
     $targetImage,    // Destination image
     $sourceImage,    // Source image
     0, 0,            // Destination x, y
-    $sourceX, $sourceY, // Source x, y
-    $targetWidth, $targetHeight, // Destination width, height
-    $squareSize, $squareSize      // Source width, height (square crop)
+    0, 0,            // Source x, y (use full source image)
+    $targetWidth, $targetHeight,   // Destination width, height
+    $sourceWidth, $sourceHeight    // Source width, height (full source)
 );
 
 // Save the processed image
@@ -208,6 +215,7 @@ echo json_encode([
     'message' => 'File uploaded and processed successfully',
     'filename' => $newFilename,
     'url' => $fileUrl,
-    'dimensions' => $targetWidth . 'x' . $targetHeight,
+    'original_dimensions' => $sourceWidth . 'x' . $sourceHeight,
+    'new_dimensions' => $targetWidth . 'x' . $targetHeight,
     'size' => $finalSizeKB . ' KB'
 ]);

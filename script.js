@@ -17,6 +17,54 @@ document.addEventListener('DOMContentLoaded', function() {
     let dragSrcEl = null; // Element, das gezogen wird
     const serverUrl = 'https://upload.karlknoop.com/'; // URL zur PHP-Datei
     
+    // Notification system
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+        `;
+        
+        const backgroundColor = {
+            'success': '#10b981',
+            'error': '#ef4444',
+            'warning': '#f59e0b',
+            'info': '#3b82f6'
+        };
+        
+        notification.style.backgroundColor = backgroundColor[type] || backgroundColor.info;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Trigger animation
+        setTimeout(() => {
+            notification.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    }
+    
     // Event-Listener für Drag & Drop
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, preventDefaults, false);
@@ -67,8 +115,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (uploadedFiles.length > 0) {
             processButton.classList.remove('disabled');
             processButton.disabled = false;
+            
+            // Show file count feedback
+            const fileCountInfo = document.createElement('div');
+            fileCountInfo.className = 'file-count-info';
+            fileCountInfo.style.cssText = 'margin-top: 1rem; padding: 0.75rem; background: #dbeafe; border-radius: 0.5rem; color: #1e40af; text-align: center; font-weight: 500;';
+            fileCountInfo.textContent = `${uploadedFiles.length} image${uploadedFiles.length > 1 ? 's' : ''} selected and ready for processing`;
+            
+            // Remove any existing file count info
+            const existingInfo = dropArea.parentNode.querySelector('.file-count-info');
+            if (existingInfo) {
+                existingInfo.remove();
+            }
+            
+            dropArea.parentNode.insertBefore(fileCountInfo, dropArea.nextSibling);
         } else {
-            alert('Bitte wählen Sie gültige Bilddateien aus (JPEG, JPG, PNG).');
+            showNotification('Please select valid image files (JPEG, JPG, PNG).', 'error');
         }
     }
     
@@ -82,8 +144,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Status-Anzeige hinzufügen
         const statusElement = document.createElement('div');
         statusElement.className = 'upload-status';
-        statusElement.innerHTML = '<p>Bilder werden verarbeitet und hochgeladen...</p><div class="progress-bar"><div class="progress"></div></div>';
-        document.querySelector('.upload-section').appendChild(statusElement);
+        statusElement.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem;">
+                <i class="fas fa-cogs fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <p style="margin: 0; font-weight: 600; color: var(--gray-700);">Processing and uploading images...</p>
+            </div>
+            <div class="progress-bar"><div class="progress"></div></div>
+            <p id="upload-progress-text" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-600);">Initializing...</p>
+        `;
+        document.querySelector('.upload-card').appendChild(statusElement);
         
         const progressBar = statusElement.querySelector('.progress');
         
@@ -130,6 +199,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         const percentage = (processedCount / totalFiles) * 100;
                         progressBar.style.width = percentage + '%';
                         
+                        // Fortschrittstext aktualisieren
+                        const progressText = document.getElementById('upload-progress-text');
+                        if (progressText) {
+                            progressText.textContent = `Processing ${processedCount} of ${totalFiles} images (${Math.round(percentage)}%)`;
+                        }
+                        
                         // Datei in Artikelstruktur einfügen
                         if (!articleFiles[articleNumber]) {
                             articleFiles[articleNumber] = [];
@@ -163,7 +238,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fehler überprüfen
         const errors = uploadResults.filter(result => result.error);
         if (errors.length > 0) {
-            alert(`${errors.length} Bilder konnten nicht hochgeladen werden. Siehe Konsole für Details.`);
+            showNotification(`${errors.length} images could not be uploaded. Check console for details.`, 'error');
+            console.error('Upload errors:', errors);
+        } else {
+            showNotification(`Successfully processed ${uploadResults.length} images!`, 'success');
         }
         
         // Bilder in Artikelstruktur sortieren
@@ -213,39 +291,57 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Datei zum Server hochladen
     async function uploadFileToServer(file, fileName) {
-        const formData = new FormData();
-        formData.append('image', file, fileName);
+        const maxRetries = 3;
+        let lastError;
         
-        // Verwende das einfache Upload-Script mit verbesserter Komprimierung und Größenänderung
-        const response = await fetch(serverUrl + 'simple_upload.php', {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            console.error('HTTP error:', response.status, response.statusText);
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-                const errorText = await response.text();
-                console.error('Server response:', errorText);
-            } catch (e) {}
-            
-            throw new Error(`HTTP error! Status: ${response.status}`);
+                const formData = new FormData();
+                formData.append('image', file, fileName);
+                
+                // Verwende das einfache Upload-Script mit verbesserter Komprimierung und Größenänderung
+                const response = await fetch(serverUrl + 'simple_upload.php', {
+                    method: 'POST',
+                    body: formData,
+                    // Add timeout
+                    signal: AbortSignal.timeout(30000) // 30 second timeout
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text().catch(() => 'No response text');
+                    console.error(`HTTP error (attempt ${attempt}):`, response.status, response.statusText, errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                let result;
+                try {
+                    result = await response.json();
+                    console.log(`Upload successful (attempt ${attempt}):`, result);
+                } catch (e) {
+                    console.error(`JSON parse error (attempt ${attempt}):`, e);
+                    throw new Error('Invalid server response format');
+                }
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Server reported upload failure');
+                }
+                
+                return result;
+                
+            } catch (error) {
+                lastError = error;
+                console.warn(`Upload attempt ${attempt} failed for ${fileName}:`, error.message);
+                
+                if (attempt < maxRetries) {
+                    // Wait before retrying (exponential backoff)
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+                }
+            }
         }
         
-        let result;
-        try {
-            result = await response.json();
-            console.log('Upload response:', result);
-        } catch (e) {
-            console.error('Error parsing JSON response:', e);
-            throw new Error('Fehler beim Parsen der Server-Antwort');
-        }
-        
-        if (!result.success) {
-            throw new Error(result.message || 'Unbekannter Fehler beim Hochladen');
-        }
-        
-        return result;
+        // If all retries failed
+        console.error(`All upload attempts failed for ${fileName}:`, lastError);
+        throw lastError;
     }
     
     // Drag & Drop Funktionen für die Tabellenzellen
@@ -378,6 +474,13 @@ document.addEventListener('DOMContentLoaded', function() {
     downloadCsvButton.addEventListener('click', downloadCSV);
     
     function downloadCSV() {
+        if (Object.keys(processedArticles).length === 0) {
+            showNotification('No processed images available for CSV export.', 'warning');
+            return;
+        }
+        
+        showNotification('Generating CSV export...', 'info');
+        
         let csvContent = 'Artikelnummer;Image1;Image2;Image3;Image4;Image5;Image6;Image7\n';
         
         // Artikel nach Nummer sortieren
@@ -388,7 +491,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const host = window.location.host;
         
         // Zur Überprüfung der URLs in der Konsole anzeigen
-        console.log('Generiere CSV mit Bild-URLs, Basis:', protocol + '//' + host);
+        console.log('Generating CSV with image URLs, base:', protocol + '//' + host);
         
         sortedArticles.forEach(articleNumber => {
             let row = articleNumber;
@@ -414,14 +517,19 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('CSV Vorschau:', csvContent.substring(0, 500) + '...');
         
         // CSV-Datei erstellen und herunterladen
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `product-images-${timestamp}.csv`;
+        
         const blob = new Blob([csvContent], { type: 'text/csv;charset=latin-1;' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.setAttribute('href', url);
-        a.setAttribute('download', 'artikelbilder.csv');
+        a.setAttribute('download', filename);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        
+        showNotification(`CSV export completed: ${filename}`, 'success');
     }
     
     // Artikelnummer aus Dateinamen extrahieren (6-8 stellige Zahl)
