@@ -145,16 +145,39 @@ document.addEventListener('DOMContentLoaded', function() {
         const statusElement = document.createElement('div');
         statusElement.className = 'upload-status';
         statusElement.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem;">
-                <span style="font-size: 1.5rem; color: var(--primary-color); animation: spin 1s linear infinite;">⚙️</span>
-                <p style="margin: 0; font-weight: 600; color: var(--gray-700);">Processing and uploading images...</p>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <span style="font-size: 1.5rem; color: var(--primary-color); animation: spin 1s linear infinite;">⚙️</span>
+                    <p style="margin: 0; font-weight: 600; color: var(--gray-700);">Processing and uploading images...</p>
+                </div>
+                <button id="cancel-upload" style="padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem;">
+                    Cancel Upload
+                </button>
             </div>
             <div class="progress-bar"><div class="progress"></div></div>
-            <p id="upload-progress-text" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--gray-600);">Initializing...</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                <p id="upload-progress-text" style="margin: 0; font-size: 0.9rem; color: var(--gray-600);">Initializing...</p>
+                <div id="upload-stats" style="font-size: 0.8rem; color: var(--gray-500);">
+                    <span id="success-count">0</span> ✅ | 
+                    <span id="error-count">0</span> ❌ | 
+                    <span id="queue-status">Preparing...</span>
+                </div>
+            </div>
         `;
         document.querySelector('.upload-card').appendChild(statusElement);
         
         const progressBar = statusElement.querySelector('.progress');
+        
+        // Cancel functionality
+        let uploadCancelled = false;
+        const cancelButton = document.getElementById('cancel-upload');
+        cancelButton.addEventListener('click', () => {
+            uploadCancelled = true;
+            showNotification('Upload cancelled by user', 'warning');
+            setTimeout(() => {
+                statusElement.remove();
+            }, 1000);
+        });
         
         // Dateien nach Artikelnummern gruppieren
         const autoRename = autoRenameCheckbox.checked;
@@ -176,64 +199,133 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Dann die Bilder verarbeiten und hochladen
-        const uploadPromises = [];
+        // Batch upload system to prevent server overload
+        const batchSize = 5; // Process 5 images at a time
         const totalFiles = uploadedFiles.length;
         let processedCount = 0;
+        let successCount = 0;
+        let errorCount = 0;
+        const uploadResults = [];
         
-        for (const file of uploadedFiles) {
-            let fileName = file.name;
-            const articleNumber = extractArticleNumber(fileName);
+        // Split files into batches
+        const batches = [];
+        for (let i = 0; i < uploadedFiles.length; i += batchSize) {
+            batches.push(uploadedFiles.slice(i, i + batchSize));
+        }
+        
+        // Update queue status
+        const queueStatus = document.getElementById('queue-status');
+        if (queueStatus) {
+            queueStatus.textContent = `${batches.length} batches queued`;
+        }
+        
+        // Process each batch sequentially
+        for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+            // Check for cancellation
+            if (uploadCancelled) {
+                console.log('Upload cancelled at batch', batchIndex + 1);
+                break;
+            }
             
-            if (articleNumber) {
-                // Dateiname anpassen, wenn Option aktiviert
-                if (autoRename) {
-                    fileName = fileName.toLowerCase().replace(/[ _]/g, '-');
-                }
+            const batch = batches[batchIndex];
+            const batchPromises = [];
+            
+            // Update progress text for current batch
+            const progressText = document.getElementById('upload-progress-text');
+            const queueStatus = document.getElementById('queue-status');
+            if (progressText) {
+                progressText.textContent = `Processing batch ${batchIndex + 1} of ${batches.length} (${processedCount}/${totalFiles} images completed)`;
+            }
+            if (queueStatus) {
+                queueStatus.textContent = `Batch ${batchIndex + 1}/${batches.length}`;
+            }
+            
+            for (const file of batch) {
+                let fileName = file.name;
+                const articleNumber = extractArticleNumber(fileName);
                 
-                // Upload-Promise erstellen
-                const uploadPromise = uploadFileToServer(file, fileName)
-                    .then(response => {
-                        // Fortschritt aktualisieren
-                        processedCount++;
-                        const percentage = (processedCount / totalFiles) * 100;
-                        progressBar.style.width = percentage + '%';
-                        
-                        // Fortschrittstext aktualisieren
-                        const progressText = document.getElementById('upload-progress-text');
-                        if (progressText) {
-                            progressText.textContent = `Processing ${processedCount} of ${totalFiles} images (${Math.round(percentage)}%)`;
-                        }
-                        
-                        // Datei in Artikelstruktur einfügen
-                        if (!articleFiles[articleNumber]) {
-                            articleFiles[articleNumber] = [];
-                        }
-                        
-                        // Speichere die Dateiinformationen mit der URL vom Server
-                        articleFiles[articleNumber].push({
-                            file: file,
-                            fileName: fileName,
-                            url: URL.createObjectURL(file), // Lokale Vorschau
-                            serverUrl: response.url // Tatsächliche URL auf dem Server
+                if (articleNumber) {
+                    // Dateiname anpassen, wenn Option aktiviert
+                    if (autoRename) {
+                        fileName = fileName.toLowerCase().replace(/[ _]/g, '-');
+                    }
+                    
+                    // Upload-Promise erstellen
+                    const uploadPromise = uploadFileToServer(file, fileName)
+                        .then(response => {
+                            // Fortschritt aktualisieren
+                            processedCount++;
+                            successCount++;
+                            const percentage = (processedCount / totalFiles) * 100;
+                            progressBar.style.width = percentage + '%';
+                            
+                            // Statistiken aktualisieren
+                            const successCountEl = document.getElementById('success-count');
+                            if (successCountEl) {
+                                successCountEl.textContent = successCount;
+                            }
+                            
+                            // Fortschrittstext aktualisieren
+                            const progressText = document.getElementById('upload-progress-text');
+                            if (progressText) {
+                                progressText.textContent = `Processing ${processedCount} of ${totalFiles} images (${Math.round(percentage)}%)`;
+                            }
+                            
+                            // Datei in Artikelstruktur einfügen
+                            if (!articleFiles[articleNumber]) {
+                                articleFiles[articleNumber] = [];
+                            }
+                            
+                            // Speichere die Dateiinformationen mit der URL vom Server
+                            articleFiles[articleNumber].push({
+                                file: file,
+                                fileName: fileName,
+                                url: URL.createObjectURL(file), // Lokale Vorschau
+                                serverUrl: response.url // Tatsächliche URL auf dem Server
+                            });
+                            
+                            return { articleNumber, fileName, response };
+                        })
+                        .catch(error => {
+                            processedCount++; // Still count failed uploads for progress
+                            errorCount++;
+                            const percentage = (processedCount / totalFiles) * 100;
+                            progressBar.style.width = percentage + '%';
+                            
+                            // Statistiken aktualisieren
+                            const errorCountEl = document.getElementById('error-count');
+                            if (errorCountEl) {
+                                errorCountEl.textContent = errorCount;
+                            }
+                            
+                            console.error('Fehler beim Hochladen:', error);
+                            return { error: true, fileName, message: error.message };
                         });
-                        
-                        return { articleNumber, fileName, response };
-                    })
-                    .catch(error => {
-                        console.error('Fehler beim Hochladen:', error);
-                        return { error: true, fileName, message: error.message };
-                    });
-                
-                uploadPromises.push(uploadPromise);
+                    
+                    batchPromises.push(uploadPromise);
+                }
+            }
+            
+            // Wait for current batch to complete before proceeding to next batch
+            const batchResults = await Promise.all(batchPromises);
+            uploadResults.push(...batchResults);
+            
+            // Add small delay between batches to prevent server overload
+            if (batchIndex < batches.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
             }
         }
         
-        // Warten, bis alle Uploads abgeschlossen sind
-        const uploadResults = await Promise.all(uploadPromises);
+        // Final status update
+        const queueStatus = document.getElementById('queue-status');
+        if (queueStatus) {
+            queueStatus.textContent = `Completed! ${successCount}✅ ${errorCount}❌`;
+        }
         
-        // Status-Anzeige entfernen
-        statusElement.remove();
+        // Remove status display after a short delay to show final results
+        setTimeout(() => {
+            statusElement.remove();
+        }, 2000);
         
         // Fehler überprüfen
         const errors = uploadResults.filter(result => result.error);
@@ -300,12 +392,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('image', file, fileName);
                 
                 // Verwende das einfache Upload-Script mit verbesserter Komprimierung und Größenänderung
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+                
                 const response = await fetch(serverUrl + 'simple_upload.php', {
                     method: 'POST',
                     body: formData,
-                    // Add timeout
-                    signal: AbortSignal.timeout(30000) // 30 second timeout
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
                     const errorText = await response.text().catch(() => 'No response text');
