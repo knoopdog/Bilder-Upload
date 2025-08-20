@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Upload Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1, h2 {
+            color: #4a6fa5;
+        }
+        .container {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .drop-area {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .drop-area.highlight {
+            border-color: #4a6fa5;
+            background-color: #f8f9fa;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        .image-result {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .image-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .info-item {
+            flex: 1;
+            min-width: 200px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Upload Test Page</h1>
+    <p>This page tests the upload, resize and compression of images to 1500×1500px with high compression.</p>
+    
+    <div class="container">
+        <h2>Upload Image</h2>
+        <div class="drop-area" id="dropArea">
+            <p>Drag & drop an image here or click to select</p>
+            <input type="file" id="fileInput" accept="image/*">
+        </div>
+        <button id="uploadButton" disabled>Upload Image</button>
+        <div class="progress-container" id="progressContainer" style="display: none;">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        // DOM elements
+        const dropArea = document.getElementById('dropArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const resultsDiv = document.getElementById('results');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        
+        // Selected file
+        let selectedFile = null;
+        
+        // Event listeners for drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+        
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+        
+        // Handle dropped files
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        // Handle file selection via button
+        dropArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+        
+        // Process the selected files
+        function handleFiles(files) {
+            if (files.length > 0) {
+                selectedFile = files[0];
+                uploadButton.disabled = false;
+                dropArea.innerHTML = `<p>Selected: ${selectedFile.name} (${formatFileSize(selectedFile.size)})</p>`;
+            }
+        }
+        
+        // Helper to format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(2) + ' KB';
+            else return (bytes / 1048576).toFixed(2) + ' MB';
+        }
+        
+        // Upload handler
+        uploadButton.addEventListener('click', uploadFile);
+        
+        async function uploadFile() {
+            if (!selectedFile) return;
+            
+            // Show progress
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            uploadButton.disabled = true;
+            
+            // Create FormData
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            
+            try {
+                // Upload the image
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'simple_upload.php');
+                
+                // Track progress
+                xhr.upload.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = (event.loaded / event.total) * 100;
+                        progressBar.style.width = percentComplete + '%';
+                    }
+                };
+                
+                // Set up completion handler
+                xhr.onload = function() {
+                    progressContainer.style.display = 'none';
+                    uploadButton.disabled = false;
+                    
+                    if (xhr.status === 200) {
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            displayResults(response, selectedFile);
+                        } catch (e) {
+                            showError('Error parsing response: ' + xhr.responseText);
+                        }
+                    } else {
+                        showError('Upload failed. Status: ' + xhr.status);
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    progressContainer.style.display = 'none';
+                    uploadButton.disabled = false;
+                    showError('Network error occurred');
+                };
+                
+                xhr.send(formData);
+            } catch (error) {
+                progressContainer.style.display = 'none';
+                uploadButton.disabled = false;
+                showError('Error: ' + error.message);
+            }
+        }
+        
+        // Display the upload results
+        function displayResults(response, originalFile) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'image-result';
+            
+            if (response.success) {
+                resultDiv.innerHTML = `
+                    <div class="success">Upload successful!</div>
+                    <div class="image-info">
+                        <div class="info-item">
+                            <h3>Original Image</h3>
+                            <p>Name: ${originalFile.name}</p>
+                            <p>Size: ${formatFileSize(originalFile.size)}</p>
+                            <p>Type: ${originalFile.type}</p>
+                        </div>
+                        <div class="info-item">
+                            <h3>Processed Image</h3>
+                            <p>Name: ${response.filename}</p>
+                            <p>Size: ${response.size}</p>
+                            <p>Dimensions: ${response.dimensions}</p>
+                            <p>URL: <a href="${response.url}" target="_blank">${response.url}</a></p>
+                        </div>
+                    </div>
+                    <h3>Compression Results</h3>
+                    <p>Size reduction: ${Math.round((1 - (parseFloat(response.size) * 1024 / originalFile.size)) * 100)}%</p>
+                    <p>Original size: ${formatFileSize(originalFile.size)}</p>
+                    <p>Compressed size: ${response.size}</p>
+                    <h3>Response Details</h3>
+                    <pre>${JSON.stringify(response, null, 2)}</pre>
+                    <h3>Image Preview</h3>
+                    <img src="${response.url}" alt="Uploaded image">
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="error">Upload failed: ${response.message}</div>
+                    <pre>${JSON.stringify(response, null, 2)}</pre>
+                `;
+            }
+            
+            // Add to results
+            resultsDiv.insertBefore(resultDiv, resultsDiv.firstChild);
+            
+            // Reset for new upload
+            selectedFile = null;
+            dropArea.innerHTML = '<p>Drag & drop an image here or click to select</p>';
+            uploadButton.disabled = true;
+        }
+        
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            resultsDiv.insertBefore(errorDiv, resultsDiv.firstChild);
+        }
+    </script>
+</body>
+</html>
