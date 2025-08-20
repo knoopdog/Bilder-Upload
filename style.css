@@ -119,6 +119,14 @@ body {
     font-size: 3rem;
     color: var(--white);
     filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+    display: inline-block;
+}
+
+.header-icon {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    display: block;
 }
 
 .app-header h1 {
@@ -153,7 +161,7 @@ body {
     text-align: center;
 }
 
-.card-header i {
+.card-header .header-icon {
     font-size: 2.5rem;
     color: var(--primary-color);
     margin-bottom: 1rem;
@@ -368,9 +376,10 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-.process-btn i,
-.download-btn i {
+.process-btn span:first-child,
+.download-btn span:first-child {
     font-size: 1.5rem;
+    margin-bottom: 0.25rem;
 }
 
 .process-btn small,
@@ -420,6 +429,11 @@ body {
     font-size: 1.25rem;
 }
 
+.stat-icon span {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
 .stat-content {
     display: flex;
     flex-direction: column;
@@ -451,9 +465,10 @@ body {
     border: 1px solid #93c5fd;
 }
 
-.drag-drop-hint i {
+.drag-drop-hint span {
     color: var(--primary-color);
     font-size: 1.1rem;
+    margin-right: 0.5rem;
 }
 
 /* ===== TABLE ===== */
@@ -485,9 +500,10 @@ body {
     z-index: 10;
 }
 
-.modern-table th i {
+.modern-table th span {
     margin-right: 0.5rem;
     opacity: 0.8;
+    font-size: 0.9rem;
 }
 
 .modern-table td {
@@ -729,6 +745,15 @@ body {
     to {
         transform: translateX(0);
         opacity: 1;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
     }
 }
 

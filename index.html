@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Professional Image Upload & CSV Generator</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
     <div class="app-container">
@@ -13,7 +12,7 @@
         <header class="app-header">
             <div class="header-content">
                 <div class="logo-section">
-                    <i class="fas fa-cloud-upload-alt logo-icon"></i>
+                    <span class="logo-icon">☁</span>
                     <h1>ImageFlow Pro</h1>
                 </div>
                 <p class="subtitle">Professional Image Processing & CSV Export Platform</p>
@@ -25,18 +24,18 @@
             <!-- Upload Section -->
             <section class="upload-card">
                 <div class="card-header">
-                    <i class="fas fa-upload"></i>
+                    <span class="header-icon">📤</span>
                     <h2>Upload & Process Images</h2>
                     <p>Drag and drop your product images or select files to get started</p>
                 </div>
                 
                 <div class="file-drop-zone" id="drop-area">
                     <div class="drop-zone-content">
-                        <i class="fas fa-cloud-upload-alt drop-icon"></i>
+                        <span class="drop-icon">☁</span>
                         <h3>Drop images here</h3>
                         <p>or</p>
                         <label class="select-files-btn">
-                            <i class="fas fa-folder-open"></i>
+                            <span>📁</span>
                             Select Files
                             <input type="file" id="file-input" multiple accept="image/*">
                         </label>
@@ -60,7 +59,7 @@
                 </div>
                 
                 <button id="process-button" class="process-btn disabled" disabled>
-                    <i class="fas fa-cogs"></i>
+                    <span>⚙️</span>
                     <span>Process Images</span>
                     <small>Resize, optimize & upload</small>
                 </button>
@@ -69,7 +68,7 @@
             <!-- Results Section -->
             <section class="results-card hidden" id="results-section">
                 <div class="card-header">
-                    <i class="fas fa-images"></i>
+                    <span class="header-icon">🖼️</span>
                     <h2>Processed Images</h2>
                     <p>Review and organize your processed product images</p>
                 </div>
@@ -77,7 +76,7 @@
                 <div class="stats-dashboard">
                     <div class="stat-card">
                         <div class="stat-icon">
-                            <i class="fas fa-images"></i>
+                            <span>🖼️</span>
                         </div>
                         <div class="stat-content">
                             <span class="stat-number" id="image-count">0</span>
@@ -86,7 +85,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">
-                            <i class="fas fa-barcode"></i>
+                            <span>🏷️</span>
                         </div>
                         <div class="stat-content">
                             <span class="stat-number" id="article-count">0</span>
@@ -95,7 +94,7 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">
-                            <i class="fas fa-compress-alt"></i>
+                            <span>📏</span>
                         </div>
                         <div class="stat-content">
                             <span class="stat-number">1500px</span>
@@ -105,7 +104,7 @@
                 </div>
                 
                 <div class="drag-drop-hint">
-                    <i class="fas fa-info-circle"></i>
+                    <span>💡</span>
                     <span><strong>Pro Tip:</strong> Drag and drop images between columns to reorganize your product gallery</span>
                 </div>
                 
@@ -115,35 +114,35 @@
                             <thead>
                                 <tr>
                                     <th class="article-col">
-                                        <i class="fas fa-barcode"></i>
+                                        <span>🏷️</span>
                                         Article Number
                                     </th>
                                     <th class="image-col">
-                                        <i class="fas fa-image"></i>
+                                        <span>🖼️</span>
                                         Image 1 (Back)
                                     </th>
                                     <th class="image-col">
-                                        <i class="fas fa-image"></i>
+                                        <span>🖼️</span>
                                         Image 2 (Front)
                                     </th>
                                     <th class="image-col">
-                                        <i class="fas fa-image"></i>
+                                        <span>🖼️</span>
                                         Image 3
                                     </th>
                                     <th class="image-col">
-                                        <i class="fas fa-image"></i>
+                                        <span>🖼️</span>
                                         Image 4
                                     </th>
                                     <th class="image-col">
-                                        <i class="fas fa-image"></i>
+                                        <span>🖼️</span>
                                         Image 5
                                     </th>
                                     <th class="image-col">
-                                        <i class="fas fa-image"></i>
+                                        <span>🖼️</span>
                                         Image 6
                                     </th>
                                     <th class="image-col">
-                                        <i class="fas fa-image"></i>
+                                        <span>🖼️</span>
                                         Image 7
                                     </th>
                                 </tr>
@@ -157,7 +156,7 @@
                 
                 <div class="action-section">
                     <button id="download-csv" class="download-btn">
-                        <i class="fas fa-download"></i>
+                        <span>💾</span>
                         <span>Download CSV Export</span>
                         <small>Product image URLs</small>
                     </button>

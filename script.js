@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         statusElement.className = 'upload-status';
         statusElement.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem;">
-                <i class="fas fa-cogs fa-spin" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                <span style="font-size: 1.5rem; color: var(--primary-color); animation: spin 1s linear infinite;">⚙️</span>
                 <p style="margin: 0; font-weight: 600; color: var(--gray-700);">Processing and uploading images...</p>
             </div>
             <div class="progress-bar"><div class="progress"></div></div>
