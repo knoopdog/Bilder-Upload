@@ -225,7 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Update queue status
-        const queueStatus = document.getElementById('queue-status');
+        let queueStatus = document.getElementById('queue-status');
         if (queueStatus) {
             queueStatus.textContent = `${batches.length} batches queued`;
         }
@@ -243,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update progress text for current batch
             const progressText = document.getElementById('upload-progress-text');
-            const queueStatus = document.getElementById('queue-status');
+            queueStatus = document.getElementById('queue-status');
             if (progressText) {
                 progressText.textContent = `Processing batch ${batchIndex + 1} of ${batches.length} (${processedCount}/${totalFiles} images completed)`;
             }
@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Final status update
-        const queueStatus = document.getElementById('queue-status');
+        queueStatus = document.getElementById('queue-status');
         if (queueStatus) {
             queueStatus.textContent = `Completed! ${successCount}✅ ${errorCount}❌`;
         }
